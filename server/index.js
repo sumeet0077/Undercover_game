@@ -60,6 +60,14 @@ io.on('connection', (socket) => {
         gameManager.returnToLobby(roomId);
     });
 
+    socket.on('typing_start', ({ roomId }) => {
+        socket.to(roomId).emit('player_typing', { playerId: socket.id, isTyping: true });
+    });
+
+    socket.on('typing_stop', ({ roomId }) => {
+        socket.to(roomId).emit('player_typing', { playerId: socket.id, isTyping: false });
+    });
+
     socket.on('disconnect', () => {
         gameManager.handleDisconnect(socket.id);
     });

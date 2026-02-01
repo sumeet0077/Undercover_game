@@ -14,6 +14,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
     const [eliminatedInfo, setEliminatedInfo] = useState(null);
     const [gameResult, setGameResult] = useState(null);
     const [hasVoted, setHasVoted] = useState(false);
+    const [typingInfo, setTypingInfo] = useState(null);
 
     const me = room.players.find(p => p.id === myId);
 
@@ -59,6 +60,10 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
 
         socket.on('vote_confirmed', ({ targetId }) => {
             setHasVoted(true);
+        });
+
+        socket.on('player_typing', ({ playerId, isTyping }) => {
+            setTypingInfo({ playerId, isTyping });
         });
 
         socket.on('new_round', ({ phase, currentTurn }) => {
@@ -249,12 +254,14 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
                         <div className="mt-4 flex gap-2">
                             <input
                                 type="text"
-                                placeholder="Describe your word with one word..."
+                                placeholder="Describe your word..."
                                 className="flex-1 bg-slate-900 border border-gray-600 rounded-lg px-4 focus:outline-none focus:border-primary"
                                 value={inputDesc}
                                 onChange={e => setInputDesc(e.target.value)}
+                                onFocus={() => socket.emit('typing_start', { roomId: room.id })}
+                                onBlur={() => socket.emit('typing_stop', { roomId: room.id })}
                                 onKeyDown={e => e.key === 'Enter' && submitDesc()}
-                                maxLength={20}
+                                maxLength={200}
                                 autoFocus
                             />
                             <button
@@ -266,8 +273,17 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
                         </div>
                     )}
                     {phase === 'DESCRIPTION' && turnId !== myId && (
-                        <div className="mt-4 p-3 bg-slate-900/50 rounded-lg text-center text-gray-500 text-sm">
-                            Waiting for active player...
+                        <div className="mt-4 p-3 bg-slate-900/50 rounded-lg text-center text-gray-500 text-sm flex justify-center items-center gap-2">
+                            {typingInfo && typingInfo.isTyping && typingInfo.playerId === turnId ? (
+                                <>
+                                    <span className="animate-pulse">✍️</span>
+                                    <span className="text-primary font-bold animate-pulse">
+                                        {room.players.find(p => p.id === turnId)?.name || 'Player'} is typing...
+                                    </span>
+                                </>
+                            ) : (
+                                "Waiting for active player..."
+                            )}
                         </div>
                     )}
                 </div>

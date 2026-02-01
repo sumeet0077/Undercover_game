@@ -5,7 +5,7 @@ const Lobby = ({ room, socket, myId }) => {
     const isHost = room.players.find(p => p.id === myId)?.isHost;
     const [ucCount, setUcCount] = React.useState(1);
     const [mrWhiteCount, setMrWhiteCount] = React.useState(0);
-    const [showRole, setShowRole] = React.useState(true);
+    const [showRole, setShowRole] = React.useState(false);
     const [codeCopied, setCodeCopied] = React.useState(false);
 
     const copyCode = () => {
