@@ -7,6 +7,10 @@ import GameManager from './gameManager.js';
 const app = express();
 app.use(cors());
 
+app.get('/', (req, res) => {
+    res.send('Undercover Server is Running!');
+});
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
