@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply bg-slate-900 text-white min-h-screen font-sans antialiased overflow-x-hidden;
+  }
+}
+
+@theme {
+  --color-background: #0f172a;
+  --color-primary: #8b5cf6;
+  --color-secondary: #ec4899;
+  --color-accent: #06b6d4;
+  --color-card: #1e293b;
+  --font-sans: "Inter", "sans-serif";
+}
+
+.card-flip {
+  perspective: 1000px;
+}
+
+.card-inner {
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.card-flip:hover .card-inner,
+.card-flip.flipped .card-inner {
+  transform: rotateY(180deg);
+}
+
+.card-front,
+.card-back {
+  backface-visibility: hidden;
+}
+
+.card-back {
+  transform: rotateY(180deg);
+}

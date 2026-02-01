@@ -1,0 +1,338 @@
+import { v4 as uuidv4 } from 'uuid';
+import { WORD_PAIRS } from './words.js';
+
+class GameManager {
+    constructor(io) {
+        this.io = io;
+        this.rooms = new Map(); // roomId -> roomState
+    }
+
+    createRoom(hostName, socketId) {
+        const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const player = {
+            id: socketId,
+            name: hostName,
+            isHost: true,
+            role: null,
+            word: null,
+            isAlive: true,
+            avatar: Math.floor(Math.random() * 10)
+        };
+
+        const roomState = {
+            id: roomId,
+            players: [player],
+            status: 'LOBBY', // LOBBY, PLAYING, VOTING, GAMEOVER
+            phase: null, // DESCRIPTION, VOTING
+            currentTurnIndex: 0,
+            descriptions: [],
+            votes: {},
+            aiPlayers: [], // Future proofing
+            wordPair: null,
+            round: 1,
+            wordPair: null,
+            round: 1,
+            winners: null,
+            skippedCount: 0
+        };
+
+        this.rooms.set(roomId, roomState);
+        return roomId;
+    }
+
+    joinRoom(roomId, playerName, socketId) {
+        const room = this.rooms.get(roomId);
+        if (!room) return { error: "Room not found" };
+        if (room.status !== 'LOBBY') return { error: "Game already started" };
+        if (room.players.find(p => p.name === playerName)) return { error: "Name taken" };
+
+        const player = {
+            id: socketId,
+            name: playerName,
+            isHost: false,
+            role: null,
+            word: null,
+            isAlive: true,
+            avatar: Math.floor(Math.random() * 10)
+        };
+
+        room.players.push(player);
+        return { room };
+    }
+
+    startGame(roomId, config) {
+        const room = this.rooms.get(roomId);
+        if (!room) return;
+        if (room.players.length < 3) return { error: "Need at least 3 players" };
+
+        // Assign Roles
+        const players = room.players;
+        const playerCount = players.length;
+
+        let undercoverCount = config?.ucCount !== undefined ? config.ucCount : 1;
+        let mrWhiteCount = config?.mrWhiteCount !== undefined ? config.mrWhiteCount : 0;
+
+        // Validation (basic)
+        if (undercoverCount + mrWhiteCount >= playerCount) {
+            // Fallback if config is broken
+            undercoverCount = 1;
+            mrWhiteCount = 0;
+        }
+
+        const roles = [];
+        for (let i = 0; i < undercoverCount; i++) roles.push('UNDERCOVER');
+        for (let i = 0; i < mrWhiteCount; i++) roles.push('MR_WHITE');
+        while (roles.length < playerCount) roles.push('CIVILIAN');
+
+        // Shuffle roles
+        roles.sort(() => Math.random() - 0.5);
+
+        // Pick words
+        const pair = WORD_PAIRS[Math.floor(Math.random() * WORD_PAIRS.length)];
+        // Randomize which word is Civilian vs Undercover to avoid pattern
+        const swap = Math.random() > 0.5;
+        const civilianWord = swap ? pair[0] : pair[1];
+        const undercoverWord = swap ? pair[1] : pair[0];
+
+        // Assign to players
+        players.forEach((p, index) => {
+            p.role = roles[index];
+            p.isAlive = true;
+            if (p.role === 'CIVILIAN') p.word = civilianWord;
+            else if (p.role === 'UNDERCOVER') p.word = undercoverWord;
+            else p.word = null; // Mr. White
+        });
+
+        // Randomize turn order for the game
+        const startPlayerIndex = Math.floor(Math.random() * players.length);
+
+        room.status = 'PLAYING';
+        room.phase = 'DESCRIPTION';
+        room.currentTurnIndex = startPlayerIndex;
+        room.wordPair = pair;
+        room.descriptions = [];
+        room.turnOrder = this.getAlivePlayersIndices(room, startPlayerIndex);
+        room.config = config; // Store config for UI (role hiding)
+
+        this.io.to(roomId).emit('game_started', {
+            status: room.status,
+            phase: room.phase,
+            currentTurn: room.players[room.turnOrder[0]].id
+        });
+
+        // Send individual info
+        players.forEach(p => {
+            this.io.to(p.id).emit('your_info', {
+                role: p.role,
+                word: p.word
+            });
+        });
+
+        return room;
+    }
+
+    getAlivePlayersIndices(room, startIndex = 0) {
+        const indices = [];
+        for (let i = 0; i < room.players.length; i++) {
+            const idx = (startIndex + i) % room.players.length;
+            if (room.players[idx].isAlive) {
+                indices.push(idx);
+            }
+        }
+        return indices;
+    }
+
+    submitDescription(roomId, playerId, description) {
+        const room = this.rooms.get(roomId);
+        if (!room) return;
+
+        const currentPlayerIdx = room.turnOrder[0];
+        if (currentPlayerIdx === undefined) return; // Safety
+
+        const currentPlayer = room.players[currentPlayerIdx];
+
+        if (currentPlayer.id !== playerId) return { error: "Not your turn" };
+
+        room.descriptions.push({
+            playerId,
+            name: currentPlayer.name,
+            text: description
+        });
+
+        // Advance turn
+        room.turnOrder.shift(); // Remove current player from head
+
+        if (room.turnOrder.length === 0) {
+            // Round of descriptions over
+            room.phase = 'VOTING';
+            room.votes = {};
+            this.io.to(roomId).emit('phase_change', { phase: 'VOTING' });
+        } else {
+            this.io.to(roomId).emit('next_turn', { currentTurn: room.players[room.turnOrder[0]].id });
+        }
+
+        this.io.to(roomId).emit('update_descriptions', room.descriptions);
+    }
+
+    submitVote(roomId, voterId, targetId) {
+        const room = this.rooms.get(roomId);
+        if (!room || room.phase !== 'VOTING') return;
+
+        // Check if voter is alive
+        const voter = room.players.find(p => p.id === voterId);
+        if (!voter || !voter.isAlive) return;
+
+        // Check if already voted
+        if (room.votes[voterId]) return;
+
+        // Record vote
+        room.votes[voterId] = targetId;
+
+        // Check if all alive players voted
+        const aliveCount = room.players.filter(p => p.isAlive).length;
+        const votesCast = Object.keys(room.votes).length;
+
+        this.io.to(roomId).emit('update_votes', { count: votesCast, total: aliveCount });
+        this.io.to(voterId).emit('vote_confirmed', { targetId }); // Feedback to user
+
+        if (votesCast >= aliveCount) {
+            this.resolveVoting(roomId);
+        }
+    }
+
+    resolveVoting(roomId) {
+        const room = this.rooms.get(roomId);
+
+        // Tally votes
+        const voteCounts = {};
+        let skipCount = 0;
+
+        Object.values(room.votes).forEach(targetId => {
+            if (targetId === 'SKIP') {
+                skipCount++;
+            } else {
+                voteCounts[targetId] = (voteCounts[targetId] || 0) + 1;
+            }
+        });
+
+        // Find max
+        let maxVotes = 0;
+        let eliminatedId = null;
+        let tie = false;
+
+        Object.entries(voteCounts).forEach(([id, count]) => {
+            if (count > maxVotes) {
+                maxVotes = count;
+                eliminatedId = id;
+                tie = false;
+            } else if (count === maxVotes) {
+                tie = true;
+            }
+        });
+
+        // Logic: Skip leads if skipCount >= maxVotes (skip wins ties)
+        if (skipCount >= maxVotes && skipCount > 0) {
+            this.io.to(roomId).emit('voting_result', { result: 'Skipped', eliminated: null });
+        } else if (tie) {
+            this.io.to(roomId).emit('voting_result', { result: 'Tie', eliminated: null });
+        } else {
+            const eliminatedPlayer = room.players.find(p => p.id === eliminatedId);
+            eliminatedPlayer.isAlive = false;
+            this.io.to(roomId).emit('voting_result', {
+                result: 'Eliminated',
+                eliminated: { name: eliminatedPlayer.name, role: eliminatedPlayer.role }
+            });
+            this.io.to(roomId).emit('room_update', room); // Sync dead status
+        }
+
+        // Check Win Condition
+        const winner = this.checkWinCondition(room);
+        if (winner) {
+            room.status = 'GAMEOVER';
+            room.winners = winner;
+            this.io.to(roomId).emit('game_over', { winners: winner, allRoles: room.players });
+        } else {
+            // Start next round
+            // Reset descriptions and votes
+            room.phase = 'DESCRIPTION';
+            room.descriptions = [];
+            room.votes = {};
+            room.round++;
+
+            // Next starting player is next alive player after the one who started last time
+            // Simple rotation: Just get all alive players
+            room.turnOrder = this.getAlivePlayersIndices(room, (room.currentTurnIndex + 1) % room.players.length);
+            room.currentTurnIndex = room.turnOrder[0]; // Update for next round logic
+
+            // Delay slightly for UI to show voting result
+            setTimeout(() => {
+                this.io.to(roomId).emit('new_round', {
+                    phase: 'DESCRIPTION',
+                    currentTurn: room.players[room.turnOrder[0]].id
+                });
+            }, 5000);
+        }
+    }
+
+    checkWinCondition(room) {
+        const aliveCivilians = room.players.filter(p => p.isAlive && p.role === 'CIVILIAN').length;
+        const aliveUndercovers = room.players.filter(p => p.isAlive && (p.role === 'UNDERCOVER' || p.role === 'MR_WHITE')).length;
+
+        if (aliveUndercovers === 0) {
+            return 'CIVILIANS';
+        }
+        // Undercovers win if they equal or outnumber civilians (standard rules often say 1:1 is win for UC)
+        if (aliveUndercovers >= aliveCivilians) {
+            return 'UNDERCOVERS';
+        }
+        return null;
+    }
+
+    returnToLobby(roomId) {
+        const room = this.rooms.get(roomId);
+        if (!room) return;
+
+        room.status = 'LOBBY';
+        room.phase = null;
+        room.currentTurnIndex = 0;
+        room.descriptions = [];
+        room.votes = {};
+        room.wordPair = null;
+        room.round = 1;
+        room.winners = null;
+        room.skippedCount = 0;
+        room.turnOrder = [];
+        room.config = null; // Optional: Reset config or keep it. Let's keep it? Actually safer to reset or let UI defaults take over. Let's reset to force Host to see defaults or re-configure.
+
+        // Reset Players
+        room.players.forEach(p => {
+            p.role = null;
+            p.word = null;
+            p.isAlive = true;
+            p.avatar = Math.floor(Math.random() * 10); // New avatar for fun? Or keep same.
+        });
+
+        // Notify all
+        this.io.to(roomId).emit('room_update', room);
+    }
+
+    handleDisconnect(socketId) {
+        // Find room logic... complex for reconnection but simple removal for now
+        for (const [roomId, room] of this.rooms.entries()) {
+            const playerIndex = room.players.findIndex(p => p.id === socketId);
+            if (playerIndex !== -1) {
+                const player = room.players[playerIndex];
+                if (room.status === 'LOBBY') {
+                    room.players.splice(playerIndex, 1);
+                    this.io.to(roomId).emit('player_left', room.players);
+                } else {
+                    // Determine if game needs to end
+                    player.isAlive = false; // Kill them
+                    this.io.to(roomId).emit('player_disconnected', player.name);
+                }
+            }
+        }
+    }
+}
+
+export default GameManager;
