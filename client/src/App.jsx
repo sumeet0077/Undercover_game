@@ -6,7 +6,7 @@ import GameRoom from './components/GameRoom';
 const socket = io(import.meta.env.VITE_SERVER_URL || 'http://localhost:3000', {
   transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
   reconnectionAttempts: 5,
-  timeout: 10000,
+  timeout: 60000, // Increased to 60s for Render cold starts
 });
 
 function App() {
