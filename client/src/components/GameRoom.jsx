@@ -34,6 +34,10 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
 
     const me = room?.players?.find(p => p.id === myId);
 
+    // Robust Turn Check: ID match OR Name match (handles socket ID shifts on rejoin)
+    const turnPlayer = room?.players?.find(p => p.id === turnId);
+    const isMyTurn = turnId === myId || (me && turnPlayer && me.name === turnPlayer.name);
+
 
 
     useEffect(() => {
@@ -396,7 +400,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
                     </button>
 
                     {/* TEXT INPUT (Only if my turn) - OR PLACEHOLDER */}
-                    {phase === 'DESCRIPTION' && turnId === myId && me.isAlive ? (
+                    {phase === 'DESCRIPTION' && isMyTurn && me.isAlive ? (
                         <div className="flex-1 flex gap-2 animate-in fade-in">
                             <input
                                 ref={inputRef}

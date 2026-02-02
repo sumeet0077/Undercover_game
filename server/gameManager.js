@@ -211,7 +211,11 @@ class GameManager {
 
         const currentPlayer = room.players[currentPlayerIdx];
 
-        if (currentPlayer.id !== playerId) return { error: "Not your turn" };
+        const sender = room.players.find(p => p.id === playerId);
+        if (!sender) return; // Ignore if sender not in room
+
+        // Validate turn: Check ID OR Name (handle rejoin edge cases)
+        if (currentPlayer.id !== playerId && currentPlayer.name !== sender.name) return { error: "Not your turn" };
 
         room.descriptions.push({
             playerId,
