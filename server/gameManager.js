@@ -432,15 +432,23 @@ class GameManager {
     }
 
     handleDisconnect(socketId) {
-        // Find room logic... complex for reconnection but simple removal for now
+        // Find room logic...
         for (const [roomId, room] of this.rooms.entries()) {
             const playerIndex = room.players.findIndex(p => p.id === socketId);
             if (playerIndex !== -1) {
                 const player = room.players[playerIndex];
+
+                // NEW BEHAVIOR:
+                // If in LOBBY, do NOT remove them. 
+                // This allows them to reconnect (e.g. mobile tab switch).
+                // They can only be removed by explicit 'leave_room' event or if host ends room.
+
                 if (room.status === 'LOBBY') {
-                    room.players.splice(playerIndex, 1);
-                    this.io.to(roomId).emit('player_left', room.players);
+                    // Optional: Mark them as disconnected visually? 
+                    // For now, let's just keep them.
+                    console.log(`Player ${player.name} disconnected from Lobby ${roomId} but kept for reconnection.`);
                 } else {
+                    // In Game: Mark as dead/disconnected
                     // Determine if game needs to end
                     player.isAlive = false; // Kill them
                     this.io.to(roomId).emit('player_disconnected', player.name);
