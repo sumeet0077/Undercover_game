@@ -81,11 +81,13 @@ function App() {
 
   const createRoom = () => {
     if (!playerName) return setError("Enter name first!");
+    setError('');
     socket.emit('create_room', { playerName });
   };
 
   const joinRoom = (roomId) => {
     if (!playerName) return setError("Enter name first!");
+    setError('');
     socket.emit('join_room', { roomId, playerName });
   };
 

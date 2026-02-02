@@ -131,10 +131,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
 
                 <div className="relative">
                     <button
-                        onMouseDown={() => setShowRole(true)}
-                        onMouseUp={() => setShowRole(false)}
-                        onTouchStart={() => setShowRole(true)}
-                        onTouchEnd={() => setShowRole(false)}
+                        onClick={() => setShowRole(!showRole)}
                         className="bg-slate-700 hover:bg-slate-600 px-6 py-2 rounded-full font-mono flex items-center gap-2 select-none"
                     >
                         {showRole ? (
@@ -149,7 +146,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
                             </>
                         ) : (
                             <>
-                                <EyeOff size={18} /> HOLD TO REVEAL
+                                <EyeOff size={18} /> TAP TO REVEAL
                             </>
                         )}
                     </button>
