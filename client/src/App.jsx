@@ -127,7 +127,7 @@ function App() {
       )}
 
       {gameState === 'LANDING' && (
-        <div className="max-w-md w-full space-y-8 text-center">
+        <div className="max-w-md w-full space-y-8 text-center flex flex-col items-center">
           {/* Connection Status Badge */}
           <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold font-mono transition-colors ${isConnected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
             {isConnected ? '● CONNECTED' : '○ DISCONNECTED'}
@@ -143,9 +143,11 @@ function App() {
             </div>
           )}
 
-          <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mb-8">
-            UNDERCOVER
-          </h1>
+          <img
+            src="/logo.png"
+            alt="Undercover Logo"
+            className="w-48 md:w-64 h-auto drop-shadow-2xl mb-8 hover:scale-105 transition-transform duration-300"
+          />
           <div className="space-y-4 bg-card p-8 rounded-2xl shadow-2xl border border-gray-700">
             <input
               type="text"
