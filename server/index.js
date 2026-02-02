@@ -92,6 +92,11 @@ io.on('connection', (socket) => {
         gameManager.returnToLobby(roomId);
     });
 
+    socket.on('reshuffle_words', ({ roomId }) => {
+        const result = gameManager.rerollWords(roomId, socket.id);
+        if (result.error) socket.emit('error', result.error);
+    });
+
     socket.on('typing_start', ({ roomId }) => {
         socket.to(roomId).emit('player_typing', { playerId: socket.id, isTyping: true });
     });

@@ -83,6 +83,11 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
             playWinSound(winners);
         });
 
+        socket.on('notification', ({ message }) => {
+            // Simple alert for now, effectively a toast
+            alert(message);
+        });
+
         return () => {
             // socket.off('your_info');
             socket.off('update_descriptions');
@@ -224,6 +229,20 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
                                 {phase === 'DESCRIPTION' ? "Listen carefully to everyone's clues." : "Who is the imposter? Vote now!"}
                             </p>
                         </div>
+
+                        {phase === 'DESCRIPTION' && me.isHost && (
+                            <button
+                                onClick={() => {
+                                    if (confirm("Change words for everyone? Existing descriptions will be cleared.")) {
+                                        socket.emit('reshuffle_words', { roomId: room.id });
+                                    }
+                                }}
+                                className="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-orange-300 font-bold border border-slate-600"
+                            >
+                                🔄 RE-ROLL WORDS
+                            </button>
+                        )}
+
                         {phase === 'VOTING' && (
                             <div className="text-right">
                                 <div className="text-2xl font-bold">{voteCount}/{totalVoteCount}</div>

@@ -145,6 +145,48 @@ class GameManager {
         return room;
     }
 
+    rerollWords(roomId, hostId) {
+        const room = this.rooms.get(roomId);
+        if (!room) return { error: "Room not found" };
+
+        const host = room.players.find(p => p.id === hostId);
+        if (!host || !host.isHost) return { error: "Only host can reshuffle" };
+
+        if (room.status !== 'PLAYING') return { error: "Game not in progress" };
+
+        // Logic similar to startGame word picking
+        const pair = WORD_PAIRS[Math.floor(Math.random() * WORD_PAIRS.length)];
+        const swap = Math.random() > 0.5;
+        const civilianWord = swap ? pair[0] : pair[1];
+        const undercoverWord = swap ? pair[1] : pair[0];
+
+        // Update words for everyone based on EXISTING roles
+        room.players.forEach(p => {
+            if (p.role === 'CIVILIAN') p.word = civilianWord;
+            else if (p.role === 'UNDERCOVER') p.word = undercoverWord;
+            // Mr. White stays null
+        });
+
+        // Update room state
+        room.wordPair = pair;
+        room.descriptions = []; // Reset descriptions for fairness
+        // room.currentTurnIndex does not change, turn stays with current player
+
+        // 1. Send Individual Info update
+        room.players.forEach(p => {
+            this.io.to(p.id).emit('your_info', {
+                role: p.role,
+                word: p.word
+            });
+        });
+
+        // 2. Notify Room (Clears feed)
+        this.io.to(roomId).emit('update_descriptions', []);
+        this.io.to(roomId).emit('notification', { message: "🔄 Host reshuffled the words! Check your role again." });
+
+        return { success: true };
+    }
+
     getAlivePlayersIndices(room, startIndex = 0) {
         const indices = [];
         for (let i = 0; i < room.players.length; i++) {
