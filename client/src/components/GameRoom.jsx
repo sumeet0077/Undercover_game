@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Eye, EyeOff, Send, Smile } from 'lucide-react';
-import { playWinSound } from '../utils/sound';
+import { Eye, EyeOff, Send, Smile, CheckCircle2 } from 'lucide-react';
+import { playWinSound, playRoleSound } from '../utils/sound';
 import clsx from 'clsx';
 
 const GameRoom = ({ room, socket, myId, roleInfo }) => {
@@ -82,6 +82,10 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
 
         socket.on('voting_result', ({ result, eliminated }) => {
             setEliminatedInfo({ result, eliminated }); // Show popup or banner
+
+            if (eliminated) {
+                playRoleSound(eliminated.role);
+            }
 
             // Clear after delay if not game over
             setTimeout(() => {
@@ -237,10 +241,18 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
 
                 {/* LEFT: PLAYERS LIST & VOTING */}
                 <div className="col-span-1 space-y-3">
-                    <h3 className="text-gray-400 text-sm uppercase font-bold tracking-wider">Players</h3>
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-gray-400 text-sm uppercase font-bold tracking-wider">Players</h3>
+                        {phase === 'VOTING' && (
+                            <span className="text-xs font-mono bg-slate-800 px-2 py-1 rounded text-primary">
+                                {voteCount}/{totalVoteCount} VOTED
+                            </span>
+                        )}
+                    </div>
                     {room?.players?.map(p => {
                         const isMyTurn = turnId === p.id;
                         const canVote = phase === 'VOTING' && me.isAlive && p.isAlive && p.id !== myId;
+                        const hasVoted = room.votes && room.votes[p.id];
 
                         return (
                             <div
@@ -267,7 +279,14 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
                                         </div>
                                     </div>
                                 </div>
-                                {canVote && <div className="text-xs bg-red-500 text-white px-2 py-1 rounded">VOTE</div>}
+                                <div className="flex items-center gap-2">
+                                    {phase === 'VOTING' && hasVoted && (
+                                        <div className="text-xs bg-slate-700 text-green-400 px-2 py-1 rounded flex items-center gap-1">
+                                            <CheckCircle2 size={12} /> VOTED
+                                        </div>
+                                    )}
+                                    {canVote && <div className="text-xs bg-red-500 text-white px-2 py-1 rounded">VOTE</div>}
+                                </div>
                             </div>
                         );
                     })}

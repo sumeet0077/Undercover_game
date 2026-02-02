@@ -76,3 +76,9 @@ export const playWinSound = (winner) => {
         osc.stop(now + 1.5);
     }
 };
+
+export const playRoleSound = (role) => {
+    // Reuse win sounds for elimination identity
+    const faction = role === 'CIVILIAN' ? 'CIVILIANS' : 'UNDERCOVERS';
+    playWinSound(faction);
+};
