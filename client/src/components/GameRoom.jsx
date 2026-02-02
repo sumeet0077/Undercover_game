@@ -34,7 +34,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
 
     const me = room?.players?.find(p => p.id === myId);
 
-    if (!room || !me || !roleInfo) return <div className="text-center mt-20 text-gray-400 animate-pulse">Loading game data...</div>;
+
 
     useEffect(() => {
         socket.on('update_descriptions', (descs) => {
@@ -163,6 +163,8 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
             scrollToBottom();
         }, 300);
     };
+
+    if (!room || !me || !roleInfo) return <div className="text-center mt-20 text-gray-400 animate-pulse">Loading game data...</div>;
 
     return (
         <div className="max-w-4xl w-full flex flex-col items-center">
