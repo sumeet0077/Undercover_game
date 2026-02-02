@@ -143,7 +143,7 @@ function App() {
             </div>
           )}
 
-          <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mb-8">
+          <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary mb-8">
             UNDERCOVER
           </h1>
           <div className="space-y-4 bg-card p-8 rounded-2xl shadow-2xl border border-gray-700">
