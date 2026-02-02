@@ -170,6 +170,8 @@ class GameManager {
         // Update room state
         room.wordPair = pair;
         room.descriptions = []; // Reset descriptions for fairness
+        room.votes = {}; // Clear votes
+        room.phase = 'DESCRIPTION'; // Always go back to description
         // room.currentTurnIndex does not change, turn stays with current player
 
         // 1. Send Individual Info update
@@ -182,6 +184,7 @@ class GameManager {
 
         // 2. Notify Room (Clears feed)
         this.io.to(roomId).emit('update_descriptions', []);
+        this.io.to(roomId).emit('phase_change', { phase: 'DESCRIPTION' }); // Sync phase
         this.io.to(roomId).emit('notification', { message: "🔄 Host reshuffled the words! Check your role again." });
 
         return { success: true };

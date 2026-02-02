@@ -230,7 +230,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
                             </p>
                         </div>
 
-                        {phase === 'DESCRIPTION' && me.isHost && (
+                        {me.isHost && phase !== 'GAMEOVER' && (
                             <button
                                 onClick={() => {
                                     if (confirm("Change words for everyone? Existing descriptions will be cleared.")) {
