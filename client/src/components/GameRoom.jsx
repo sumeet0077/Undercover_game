@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Send, User } from 'lucide-react';
+import { playWinSound } from '../utils/sound';
 import clsx from 'clsx';
 
 const GameRoom = ({ room, socket, myId, roleInfo }) => {
@@ -74,9 +75,14 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
             setHasVoted(false);
         });
 
+        import { playWinSound } from '../utils/sound'; // Needs to be added to top imports too
+
+        // ... inside component ...
+
         socket.on('game_over', ({ winners, allRoles }) => {
             setGameResult({ winners, allRoles });
             setPhase('GAMEOVER');
+            playWinSound(winners);
         });
 
         return () => {
