@@ -375,6 +375,62 @@ class GameManager {
         this.io.to(roomId).emit('room_update', room);
     }
 
+    leaveRoom(roomId, playerId) {
+        const room = this.rooms.get(roomId);
+        if (!room) return { error: "Room not found" };
+
+        const playerIndex = room.players.findIndex(p => p.id === playerId);
+        if (playerIndex === -1) return { error: "Player not found" };
+
+        const player = room.players[playerIndex];
+
+        // 1. LOBBY: Remove player completely
+        if (room.status === 'LOBBY') {
+            room.players.splice(playerIndex, 1);
+
+            // If room empty, delete it
+            if (room.players.length === 0) {
+                this.rooms.delete(roomId);
+                return { left: true, roomEmpty: true };
+            }
+
+            // If Host left, assign new host (first player)
+            if (player.isHost) {
+                room.players[0].isHost = true;
+            }
+
+            this.io.to(roomId).emit('room_update', room);
+            return { left: true };
+        }
+
+        // 2. PLAYING: Mark as dead/disconnected
+        else {
+            player.isAlive = false;
+            this.io.to(roomId).emit('player_disconnected', player.name);
+            this.io.to(roomId).emit('room_update', room);
+            return { left: true };
+        }
+    }
+
+    destroyRoom(roomId, hostId) {
+        const room = this.rooms.get(roomId);
+        if (!room) return { error: "Room not found" };
+
+        const host = room.players.find(p => p.id === hostId);
+        if (!host || !host.isHost) return { error: "Only host can end game" };
+
+        // Delete room
+        this.rooms.delete(roomId);
+
+        // Notify everyone to clear state
+        this.io.to(roomId).emit('room_destroyed');
+
+        // Disconnect all sockets from room channel
+        this.io.in(roomId).socketsLeave(roomId);
+
+        return { success: true };
+    }
+
     handleDisconnect(socketId) {
         // Find room logic... complex for reconnection but simple removal for now
         for (const [roomId, room] of this.rooms.entries()) {

@@ -88,6 +88,22 @@ function App() {
       setGameState('PLAYING');
     });
 
+    // --- NEW HANDLERS ---
+    socket.on('room_destroyed', () => {
+      alert("The host has ended the game.");
+      localStorage.removeItem('uc_roomId');
+      localStorage.removeItem('uc_getName');
+      setRoom(null);
+      setGameState('LANDING');
+    });
+
+    socket.on('left_room_success', () => {
+      localStorage.removeItem('uc_roomId');
+      localStorage.removeItem('uc_getName');
+      setRoom(null);
+      setGameState('LANDING');
+    });
+
     return () => {
       socket.off('connect');
       socket.off('disconnect');
@@ -98,8 +114,22 @@ function App() {
       socket.off('your_info');
       socket.off('error');
       socket.off('game_started');
+      socket.off('room_destroyed');
+      socket.off('left_room_success');
     };
-  }, [playerName]); // Added playerName dependency to ensure latest state capture if needed, though mostly using localStorage
+  }, [playerName]);
+
+  // VISIBILITY SYNC
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && socket.connected && room) {
+        console.log("App visible -> Syncing...");
+        socket.emit('request_sync', { roomId: room.id });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [room]);
 
   const createRoom = () => {
     if (!playerName) return setError("Enter name first!");

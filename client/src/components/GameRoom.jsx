@@ -131,11 +131,30 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
     return (
         <div className="max-w-4xl w-full flex flex-col items-center">
 
-            {/* TOP BAR: ROLE REVEAL */}
-            <div className="w-full flex justify-between items-center bg-card p-4 rounded-xl mb-6 border border-gray-700">
-                <div>
-                    <span className="text-gray-400 text-sm">YOU ARE</span>
-                    <div className="font-bold text-xl">{me.name}</div>
+            {/* TOP BAR: ROLE REVEAL & EXIT */}
+            <div className="w-full flex flex-col md:flex-row justify-between items-center bg-card p-4 rounded-xl mb-6 border border-gray-700 gap-4">
+                <div className="flex items-center gap-4">
+                    <div>
+                        <span className="text-gray-400 text-sm">YOU ARE</span>
+                        <div className="font-bold text-xl">{me.name}</div>
+                    </div>
+                    {/* EXIT BUTTONS */}
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => confirm("Leave game?") && socket.emit('leave_room', { roomId: room.id })}
+                            className="px-3 py-1 bg-red-900/50 hover:bg-red-900 text-red-200 text-xs rounded border border-red-800"
+                        >
+                            Leave
+                        </button>
+                        {me.isHost && (
+                            <button
+                                onClick={() => confirm("End game for everyone?") && socket.emit('end_game', { roomId: room.id })}
+                                className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-xs rounded font-bold"
+                            >
+                                END GAME
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="relative">

@@ -105,6 +105,34 @@ io.on('connection', (socket) => {
         socket.to(roomId).emit('player_typing', { playerId: socket.id, isTyping: false });
     });
 
+    // --- NEW HANDLERS ---
+
+    socket.on('request_sync', ({ roomId }) => {
+        // Reuse rejoin logic's refresh part basically
+        const room = gameManager.rooms.get(roomId);
+        if (room && (room.status === 'PLAYING' || room.status === 'GAMEOVER')) {
+            socket.emit('game_started', {
+                currentTurn: room.players[room.currentTurnIndex]?.id,
+                phase: room.phase
+            });
+            socket.emit('update_descriptions', room.descriptions);
+            socket.emit('update_votes', {
+                count: Object.keys(room.votes).length,
+                total: room.players.filter(p => p.isAlive).length
+            });
+        }
+    });
+
+    socket.on('leave_room', ({ roomId }) => {
+        gameManager.leaveRoom(roomId, socket.id);
+        socket.leave(roomId);
+        socket.emit('left_room_success'); // Ack to client
+    });
+
+    socket.on('end_game', ({ roomId }) => {
+        gameManager.destroyRoom(roomId, socket.id);
+    });
+
     socket.on('disconnect', () => {
         gameManager.handleDisconnect(socket.id);
     });

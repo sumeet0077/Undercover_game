@@ -21,7 +21,25 @@ const Lobby = ({ room, socket, myId }) => {
     return (
         <div className="max-w-4xl w-full">
             <div className="flex justify-between items-center mb-12">
-                <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">LOBBY</h2>
+                <div className="flex flex-col gap-2">
+                    <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">LOBBY</h2>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => confirm("Leave room?") && socket.emit('leave_room', { roomId: room.id })}
+                            className="px-3 py-1 bg-red-900/50 hover:bg-red-900 text-red-200 text-xs rounded border border-red-800"
+                        >
+                            LEAVE
+                        </button>
+                        {isHost && (
+                            <button
+                                onClick={() => confirm("End game for everyone?") && socket.emit('end_game', { roomId: room.id })}
+                                className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-xs rounded font-bold"
+                            >
+                                END ROOM
+                            </button>
+                        )}
+                    </div>
+                </div>
                 <div
                     onClick={copyCode}
                     className="bg-card px-6 py-3 rounded-full flex items-center gap-3 cursor-pointer hover:bg-slate-700 transition-colors border border-gray-700"
