@@ -78,7 +78,9 @@ export const playWinSound = (winner) => {
 };
 
 export const playRoleSound = (role) => {
-    // Reuse win sounds for elimination identity
-    const faction = role === 'CIVILIAN' ? 'CIVILIANS' : 'UNDERCOVERS';
-    playWinSound(faction);
+    // Reuse win sounds but INVERTED for elimination:
+    // Civilian died = BAD = Play Danger Sound (Undercovers theme)
+    // Imposter died = GOOD = Play Happy Sound (Civilians theme)
+    const soundTheme = role === 'CIVILIAN' ? 'UNDERCOVERS' : 'CIVILIANS';
+    playWinSound(soundTheme);
 };

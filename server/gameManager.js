@@ -257,7 +257,11 @@ class GameManager {
         const aliveCount = room.players.filter(p => p.isAlive).length;
         const votesCast = Object.keys(room.votes).length;
 
-        this.io.to(roomId).emit('update_votes', { count: votesCast, total: aliveCount });
+        this.io.to(roomId).emit('update_votes', {
+            count: votesCast,
+            total: aliveCount,
+            votes: room.votes // Send who has voted
+        });
         this.io.to(voterId).emit('vote_confirmed', { targetId }); // Feedback to user
 
         if (votesCast >= aliveCount) {
@@ -336,9 +340,10 @@ class GameManager {
 
             // Delay slightly for UI to show voting result
             setTimeout(() => {
+                this.io.to(roomId).emit('room_update', room); // SYNC HISTORY & STATE
                 this.io.to(roomId).emit('new_round', {
                     phase: 'DESCRIPTION',
-                    currentTurn: room.players[room.turnOrder[0]].id
+                    currentTurn: room.players[room.currentTurnIndex].id
                 });
             }, 5000);
         }
