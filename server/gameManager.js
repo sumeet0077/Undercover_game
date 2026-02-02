@@ -30,8 +30,6 @@ class GameManager {
             aiPlayers: [], // Future proofing
             wordPair: null,
             round: 1,
-            wordPair: null,
-            round: 1,
             winners: null,
             skippedCount: 0
         };
