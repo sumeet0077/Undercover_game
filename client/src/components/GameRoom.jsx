@@ -164,7 +164,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
         }, 300);
     };
 
-    if (!room || !me || !roleInfo) return <div className="text-center mt-20 text-gray-400 animate-pulse">Loading game data...</div>;
+    if (!room || !me || !roleInfo) return <div className="text-center mt-20 text-gray-400 animate-pulse">Loading game data... (v1.2)</div>;
 
     return (
         <div className="max-w-4xl w-full flex flex-col items-center">
