@@ -75,8 +75,6 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
             setHasVoted(false);
         });
 
-        import { playWinSound } from '../utils/sound'; // Needs to be added to top imports too
-
         // ... inside component ...
 
         socket.on('game_over', ({ winners, allRoles }) => {
