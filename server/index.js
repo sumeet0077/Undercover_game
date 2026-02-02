@@ -133,6 +133,11 @@ io.on('connection', (socket) => {
         gameManager.destroyRoom(roomId, socket.id);
     });
 
+    socket.on('send_reaction', ({ roomId, emoji }) => {
+        // Broadcast to everyone including sender
+        io.to(roomId).emit('receive_reaction', { emoji, id: Math.random() }); // Simple ID for React key
+    });
+
     socket.on('disconnect', () => {
         gameManager.handleDisconnect(socket.id);
     });

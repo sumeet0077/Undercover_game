@@ -381,6 +381,32 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
                 </div>
             )}
 
+            {/* FLOATING REACTIONS LAYER (Pointer events none allows clicking through) */}
+            <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+                {reactions.map(r => (
+                    <div
+                        key={r.id}
+                        className="absolute bottom-20 text-4xl animate-float"
+                        style={{ left: `${r.left}%` }}
+                    >
+                        {r.emoji}
+                    </div>
+                ))}
+            </div>
+
+            {/* REACTION BAR */}
+            <div className="fixed bottom-0 left-0 w-full bg-slate-900/90 backdrop-blur border-t border-gray-700 p-2 flex justify-center gap-4 z-40">
+                {['😂', '🤔', '😡', '👏', '👻', '👎'].map(emoji => (
+                    <button
+                        key={emoji}
+                        onClick={() => handleReaction(emoji)}
+                        className="text-2xl hover:scale-125 transition-transform p-2"
+                    >
+                        {emoji}
+                    </button>
+                ))}
+            </div>
+
         </div>
     );
 };
