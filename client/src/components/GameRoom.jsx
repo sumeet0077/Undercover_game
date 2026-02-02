@@ -17,6 +17,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
     const [hasVoted, setHasVoted] = useState(false);
     const [typingInfo, setTypingInfo] = useState(null);
     const [reactions, setReactions] = useState([]);
+    const [showReactions, setShowReactions] = useState(false);
 
     const messagesEndRef = useRef(null);
 
@@ -416,17 +417,33 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
                 ))}
             </div>
 
-            {/* REACTION BAR */}
-            <div className="fixed bottom-0 left-0 w-full bg-slate-900/90 backdrop-blur border-t border-gray-700 p-2 flex justify-center gap-4 z-40">
-                {['😂', '🤔', '😡', '👏', '👻', '👎'].map(emoji => (
-                    <button
-                        key={emoji}
-                        onClick={() => handleReaction(emoji)}
-                        className="text-2xl hover:scale-125 transition-transform p-2"
-                    >
-                        {emoji}
-                    </button>
-                ))}
+            {/* REACTION FAB (Floating Action Button) */}
+            <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+                {showReactions && (
+                    <div className="bg-slate-800 border border-gray-700 p-2 rounded-2xl shadow-xl flex flex-col gap-2 animate-in slide-in-from-bottom-5 fade-in duration-200 mb-2">
+                        {['😂', '🤔', '😡', '👏', '👻', '👎'].map(emoji => (
+                            <button
+                                key={emoji}
+                                onClick={() => {
+                                    handleReaction(emoji);
+                                    setShowReactions(false); // Optional: close after pick? Let's keep open for spamming
+                                }}
+                                className="text-2xl hover:scale-125 transition-transform p-2"
+                            >
+                                {emoji}
+                            </button>
+                        ))}
+                    </div>
+                )}
+                <button
+                    onClick={() => setShowReactions(!showReactions)}
+                    className={clsx(
+                        "w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all bg-slate-700 hover:bg-slate-600 text-white border border-gray-600",
+                        showReactions && "bg-primary border-primary rotate-45" // Rotate to X? Or just highlight
+                    )}
+                >
+                    {showReactions ? <span className="text-2xl font-bold">✕</span> : <span className="text-2xl">😊</span>}
+                </button>
             </div>
 
         </div>
