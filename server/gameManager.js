@@ -60,6 +60,20 @@ class GameManager {
         return { room };
     }
 
+    rejoinGame(roomId, playerName, newSocketId) {
+        const room = this.rooms.get(roomId);
+        if (!room) return { error: "Room not found" };
+
+        const player = room.players.find(p => p.name === playerName);
+        if (!player) return { error: "Player not found in this room" };
+
+        // Update socket ID
+        player.id = newSocketId;
+        player.isAlive = true; // Mark as alive if they were marked dead by disconnect (optional choice)
+
+        return { room, player };
+    }
+
     startGame(roomId, config) {
         const room = this.rooms.get(roomId);
         if (!room) return;

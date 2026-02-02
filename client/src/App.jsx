@@ -27,10 +27,26 @@ function App() {
       setMyId(socket.id);
       setIsConnected(true);
       setConnectionError('');
+
+      // Attempt Rejoin
+      const savedRoom = localStorage.getItem('uc_roomId');
+      const savedName = localStorage.getItem('uc_getName');
+      if (savedRoom && savedName) {
+        console.log("Attempting rejoin for:", savedName, savedRoom);
+        socket.emit('rejoin_game', { roomId: savedRoom, playerName: savedName });
+      }
     });
 
     socket.on('disconnect', () => {
       setIsConnected(false);
+    });
+
+    socket.on('rejoin_failed', (err) => {
+      console.log("Rejoin failed:", err);
+      localStorage.removeItem('uc_roomId');
+      localStorage.removeItem('uc_getName');
+      setGameState('LANDING');
+      setRoom(null);
     });
 
     socket.on('connect_error', (err) => {
@@ -40,6 +56,11 @@ function App() {
     });
 
     socket.on('room_created', ({ roomId, room }) => {
+      const rId = room ? room.id : roomId;
+      // Save for reconnection
+      localStorage.setItem('uc_roomId', rId);
+      localStorage.setItem('uc_getName', playerName);
+
       setRoom(room || { id: roomId, players: [{ name: playerName, id: socket.id, isHost: true }] });
       setGameState('LOBBY');
     });
@@ -70,6 +91,7 @@ function App() {
     return () => {
       socket.off('connect');
       socket.off('disconnect');
+      socket.off('rejoin_failed'); // Cleanup
       socket.off('connect_error');
       socket.off('room_created');
       socket.off('room_update');
@@ -77,17 +99,22 @@ function App() {
       socket.off('error');
       socket.off('game_started');
     };
-  }, []);
+  }, [playerName]); // Added playerName dependency to ensure latest state capture if needed, though mostly using localStorage
 
   const createRoom = () => {
     if (!playerName) return setError("Enter name first!");
     setError('');
+    // Store immediately (optimistic) or wait for success? 
+    // Wait for success in 'room_created'. But we need playerName state there. 
+    // Actually, 'room_created' listener uses closed-over state if not careful, but we used localStorage there.
+    localStorage.setItem('uc_getName', playerName); // Save name intended
     socket.emit('create_room', { playerName });
   };
 
   const joinRoom = (roomId) => {
     if (!playerName) return setError("Enter name first!");
     setError('');
+    localStorage.setItem('uc_getName', playerName); // Save name intended
     socket.emit('join_room', { roomId, playerName });
   };
 

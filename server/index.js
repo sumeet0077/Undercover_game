@@ -38,6 +38,38 @@ io.on('connection', (socket) => {
         } else {
             socket.join(roomId);
             io.to(roomId).emit('room_update', result.room);
+            io.to(roomId).emit('room_created', { roomId, room: result.room }); // To specific user
+        }
+    });
+
+    socket.on('rejoin_game', ({ roomId, playerName }) => {
+        const result = gameManager.rejoinGame(roomId, playerName, socket.id);
+        if (result.error) {
+            socket.emit('rejoin_failed', result.error);
+        } else {
+            const { room, player } = result;
+            socket.join(roomId);
+
+            // 1. Send specific player info
+            if (player.role) {
+                socket.emit('your_info', { role: player.role, word: player.word });
+            }
+
+            // 2. Send room state
+            socket.emit('room_update', room);
+
+            // 3. If game is running, sync game state
+            if (room.status === 'PLAYING' || room.status === 'GAMEOVER') {
+                socket.emit('game_started', {
+                    currentTurn: room.players[room.currentTurnIndex]?.id,
+                    phase: room.phase
+                });
+                socket.emit('update_descriptions', room.descriptions);
+                socket.emit('update_votes', {
+                    count: Object.keys(room.votes).length,
+                    total: room.players.filter(p => p.isAlive).length
+                });
+            }
         }
     });
 
