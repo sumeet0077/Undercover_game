@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Eye, EyeOff, Send, User } from 'lucide-react';
+import { Eye, EyeOff, Send, Smile } from 'lucide-react';
 import { playWinSound } from '../utils/sound';
 import clsx from 'clsx';
 
@@ -8,6 +8,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
     const [showRole, setShowRole] = useState(false);
     const [inputDesc, setInputDesc] = useState('');
     const [descriptions, setDescriptions] = useState([]);
+    const [history, setHistory] = useState([]); // Previous rounds
     const [turnId, setTurnId] = useState('');
     const [phase, setPhase] = useState('DESCRIPTION'); // DESCRIPTION, VOTING, GAMEOVER
     const [voteCount, setVoteCount] = useState(0);
@@ -20,6 +21,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
     const [showReactions, setShowReactions] = useState(false);
 
     const messagesEndRef = useRef(null);
+    const inputRef = useRef(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -27,31 +29,34 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
 
     const handleReaction = (emoji) => {
         socket.emit('send_reaction', { roomId: room.id, emoji });
+        setShowReactions(false);
     };
 
     const me = room?.players?.find(p => p.id === myId);
 
-    if (!room || !me || !roleInfo) return <div className="text-center mt-20">Loading game data... (Player/Role missing)</div>;
+    if (!room || !me || !roleInfo) return <div className="text-center mt-20 text-gray-400 animate-pulse">Loading game data...</div>;
 
     useEffect(() => {
-        // socket.on('your_info', (info) => { setRoleInfo(info); }); // Handled in App.jsx
-
         socket.on('update_descriptions', (descs) => {
             setDescriptions(descs);
+            setTimeout(scrollToBottom, 100);
         });
 
         socket.on('next_turn', ({ currentTurn }) => {
             setTurnId(currentTurn);
+            setTimeout(scrollToBottom, 100);
         });
 
         socket.on('phase_change', ({ phase: newPhase }) => {
             setPhase(newPhase);
+            setShowReactions(false);
         });
 
         socket.on('game_started', ({ currentTurn, phase }) => {
             setTurnId(currentTurn);
             setPhase(phase);
             setDescriptions([]);
+            setHistory([]);
             setVoteCount(0);
             setEliminatedInfo(null);
             setGameResult(null);
@@ -77,12 +82,16 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
 
         socket.on('player_typing', ({ playerId, isTyping }) => {
             setTypingInfo({ playerId, isTyping });
+            if (isTyping) scrollToBottom();
         });
 
         socket.on('new_round', ({ phase, currentTurn }) => {
             setPhase(phase);
             setTurnId(currentTurn);
             setDescriptions([]);
+            // History update happens via room_update or we can rely on local append, 
+            // but relying on room sync is safer if we implement it. 
+            // For now, let's rely on 'room_update' which sends the full room object including history.
             setVoteCount(0);
             setHasVoted(false);
         });
@@ -94,22 +103,18 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
         });
 
         socket.on('notification', ({ message }) => {
-            // Simple alert for now, effectively a toast
             alert(message);
         });
 
         socket.on('receive_reaction', ({ emoji, id }) => {
-            const reaction = { id, emoji, left: Math.random() * 80 + 10 }; // Random horizontal pos 10-90%
+            const reaction = { id, emoji, left: Math.random() * 80 + 10 };
             setReactions(prev => [...prev, reaction]);
-
-            // Auto remove after 2s
             setTimeout(() => {
                 setReactions(prev => prev.filter(r => r.id !== id));
             }, 2000);
         });
 
         return () => {
-            // socket.off('your_info');
             socket.off('update_descriptions');
             socket.off('next_turn');
             socket.off('phase_change');
@@ -125,12 +130,10 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
         }
     }, [socket]);
 
-    // Handle re-sync. Simplification: if we rejoin, we might not know if we voted.
-    // Ideally server sends this info. For now, assume false on reload (limitation).
-
-    // Handle re-sync of descriptions if room data has it
+    // Handle re-sync
     useEffect(() => {
         if (room?.descriptions) setDescriptions(room.descriptions);
+        if (room?.previousRounds) setHistory(room.previousRounds);
         if (room?.players?.[room.currentTurnIndex]?.id) setTurnId(room.players[room.currentTurnIndex].id);
         if (room?.phase) setPhase(room.phase);
     }, [room]);
@@ -140,6 +143,8 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
         if (!inputDesc.trim()) return;
         socket.emit('submit_description', { roomId: room.id, description: inputDesc });
         setInputDesc('');
+        // Keep focus? Mobile keyboard might stay up.
+        // inputRef.current?.focus(); 
     };
 
     const castVote = (targetId) => {
@@ -149,7 +154,15 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
         socket.emit('submit_vote', { roomId: room.id, targetId });
     };
 
-    if (!roleInfo || !me) return <div className="text-center mt-20 text-gray-400 animate-pulse">Loading game data...</div>;
+    // Scroll handling for mobile keyboard
+    const handleInputFocus = () => {
+        socket.emit('typing_start', { roomId: room.id });
+        // Delay to allow keyboard to pop
+        setTimeout(() => {
+            inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            scrollToBottom();
+        }, 300);
+    };
 
     return (
         <div className="max-w-4xl w-full flex flex-col items-center">
@@ -260,111 +273,157 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
                     )}
                 </div>
 
-                {/* MIDDLE/RIGHT: GAME FEED */}
+                {/* MIDDLE/RIGHT: GAME FEED (History + Current) */}
                 <div className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-2xl border border-gray-700 p-6 flex flex-col h-[500px]">
 
                     {/* HEADER */}
                     <div className="border-b border-gray-700 pb-4 mb-4 flex justify-between items-center">
                         <div>
-                            <h2 className="text-2xl font-bold">{phase === 'DESCRIPTION' ? 'Description Phase' : phase === 'VOTING' ? 'Voting Phase' : 'Game Over'}</h2>
+                            <h2 className="text-2xl font-bold">
+                                {phase === 'DESCRIPTION' ? `Round ${room.round || 1}` : phase === 'VOTING' ? 'Voting' : 'Game Over'}
+                            </h2>
                             <p className="text-gray-400 text-sm">
-                                {phase === 'DESCRIPTION' ? "Listen carefully to everyone's clues." : "Who is the imposter? Vote now!"}
+                                {phase === 'DESCRIPTION' ? "Listen carefully." : "Who is the imposter?"}
                             </p>
                         </div>
-
                         {me.isHost && phase !== 'GAMEOVER' && (
                             <button
                                 onClick={() => {
-                                    if (confirm("Change words for everyone? Existing descriptions will be cleared.")) {
-                                        socket.emit('reshuffle_words', { roomId: room.id });
-                                    }
+                                    if (confirm("Change words?")) socket.emit('reshuffle_words', { roomId: room.id });
                                 }}
-                                className="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-orange-300 font-bold border border-slate-600"
+                                className="text-xs bg-slate-700 px-3 py-1 rounded text-orange-300 border border-slate-600"
                             >
-                                🔄 RE-ROLL WORDS
+                                🔄 RE-ROLL
                             </button>
-                        )}
-
-                        {phase === 'VOTING' && (
-                            <div className="text-right">
-                                <div className="text-2xl font-bold">{voteCount}/{totalVoteCount}</div>
-                                <div className="text-xs text-gray-500">VOTES CAST</div>
-                            </div>
                         )}
                     </div>
 
-                    {/* FEED */}
-                    <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
-                        {descriptions.map((desc, i) => (
-                            <div key={i} className="flex gap-3 animate-in slide-in-from-left-2 duration-300">
-                                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold shrink-0 mt-1">
-                                    {desc.name[0]}
+                    {/* FEED SCROLL AREA */}
+                    <div className="flex-1 overflow-y-auto space-y-6 pr-2 custom-scrollbar">
+
+                        {/* HISTORY */}
+                        {history.map((roundDescs, rIdx) => (
+                            <div key={`round-${rIdx}`} className="opacity-70">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="h-px bg-gray-700 flex-1"></div>
+                                    <span className="text-xs font-bold text-gray-500 tracking-widest">ROUND {rIdx + 1}</span>
+                                    <div className="h-px bg-gray-700 flex-1"></div>
                                 </div>
-                                <div className="bg-card p-3 rounded-r-xl rounded-bl-xl text-sm border border-gray-700">
-                                    <span className="font-bold text-primary block text-xs mb-1">{desc.name}</span>
-                                    {desc.text}
+                                <div className="space-y-2">
+                                    {roundDescs.map((desc, i) => (
+                                        <div key={i} className="flex gap-3">
+                                            <div className="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-[10px] font-bold shrink-0 mt-1">
+                                                {desc.name[0]}
+                                            </div>
+                                            <div className="bg-slate-800 p-2 rounded-r-lg rounded-bl-lg text-xs border border-gray-700/50">
+                                                <span className="font-bold text-gray-400 block text-[10px] mb-0.5">{desc.name}</span>
+                                                {desc.text}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         ))}
-                        {descriptions.length === 0 && phase === 'DESCRIPTION' && (
-                            <div className="text-center text-gray-500 italic mt-10">No descriptions yet...</div>
+
+                        {/* CURRENT ROUND */}
+                        {descriptions.length > 0 && (
+                            <div className="space-y-4">
+                                {history.length > 0 && (
+                                    <div className="flex items-center gap-2 mb-2 mt-4">
+                                        <div className="h-px bg-primary/30 flex-1"></div>
+                                        <span className="text-xs font-bold text-primary tracking-widest">CURRENT ROUND</span>
+                                        <div className="h-px bg-primary/30 flex-1"></div>
+                                    </div>
+                                )}
+                                {descriptions.map((desc, i) => (
+                                    <div key={i} className="flex gap-3 animate-in slide-in-from-left-2 duration-300">
+                                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold shrink-0 mt-1">
+                                            {desc.name[0]}
+                                        </div>
+                                        <div className="bg-card p-3 rounded-r-xl rounded-bl-xl text-sm border border-gray-700">
+                                            <span className="font-bold text-primary block text-xs mb-1">{desc.name}</span>
+                                            {desc.text}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         )}
+
+                        {descriptions.length === 0 && history.length === 0 && phase === 'DESCRIPTION' && (
+                            <div className="text-center text-gray-500 italic mt-10">Start describing...</div>
+                        )}
+
+                        <div ref={messagesEndRef} />
                     </div>
                 </div>
             </div>
 
-            {/* SPACER for fixed bottom dock to prevent overlap */}
-            <div className="h-40 w-full col-span-1 md:col-span-3"></div>
+            {/* SPACER */}
+            <div className="h-32 w-full"></div>
 
-            {/* BOTTOM DOCK: REACTIONS (Always) + INPUT (Conditional) */}
+            {/* BOTTOM DOCK */}
             <div className="fixed bottom-0 left-0 w-full bg-slate-900/95 backdrop-blur border-t border-gray-700 z-50 flex flex-col pb-safe">
 
-                {/* 1. REACTIONS BAR (Scrollable Row) */}
-                <div className="flex items-center justify-center gap-2 p-2 overflow-x-auto no-scrollbar border-b border-gray-800/50">
-                    <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mr-2 shrink-0">React:</span>
-                    {['😂', '🤔', '😡', '👏', '👻', '👎', '❤️', '🔥'].map(emoji => (
-                        <button
-                            key={emoji}
-                            onClick={() => handleReaction(emoji)}
-                            className="text-2xl hover:scale-125 transition-transform p-2 active:scale-95"
-                        >
-                            {emoji}
-                        </button>
-                    ))}
+                {/* 1. REACTIONS OVERLAY (Conditional) */}
+                {showReactions && (
+                    <div className="absolute bottom-20 left-4 bg-slate-800 border border-gray-600 rounded-2xl p-3 shadow-2xl animate-in slide-in-from-bottom-2 flex gap-2 overflow-x-auto max-w-[90vw]">
+                        {['😂', '🤔', '😡', '👏', '👻', '👎', '❤️', '🔥'].map(emoji => (
+                            <button
+                                key={emoji}
+                                onClick={() => handleReaction(emoji)}
+                                className="text-2xl hover:scale-125 transition-transform p-1 active:scale-95"
+                            >
+                                {emoji}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* 2. MAIN INPUT BAR */}
+                <div className="p-3 flex items-end gap-2 w-full max-w-4xl mx-auto">
+
+                    {/* REACTION TOGGLE */}
+                    <button
+                        onClick={() => setShowReactions(!showReactions)}
+                        className={clsx(
+                            "p-3 rounded-xl transition-all shadow-lg active:scale-95 border",
+                            showReactions ? "bg-primary text-white border-primary" : "bg-slate-800 text-gray-300 border-gray-600 hover:bg-slate-700"
+                        )}
+                    >
+                        <Smile size={24} />
+                    </button>
+
+                    {/* TEXT INPUT (Only if my turn) - OR PLACEHOLDER */}
+                    {phase === 'DESCRIPTION' && turnId === myId && me.isAlive ? (
+                        <div className="flex-1 flex gap-2 animate-in fade-in">
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                placeholder="Describe your word..."
+                                className="flex-1 bg-slate-800 border-2 border-primary rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-accent"
+                                value={inputDesc}
+                                onChange={e => setInputDesc(e.target.value)}
+                                onFocus={handleInputFocus}
+                                onBlur={() => socket.emit('typing_stop', { roomId: room.id })}
+                                onKeyDown={e => e.key === 'Enter' && submitDesc()}
+                                maxLength={200}
+                                autoFocus
+                            />
+                            <button
+                                onClick={submitDesc}
+                                className="bg-gradient-to-r from-primary to-violet-600 text-white p-3 rounded-xl font-bold shadow-lg active:scale-95"
+                            >
+                                <Send size={24} />
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex-1 bg-slate-900/50 border border-gray-700 rounded-xl p-3 text-center text-gray-500 text-sm">
+                            {phase === 'DESCRIPTION' ? (
+                                turnId !== myId ? `${room?.players?.find(p => p.id === turnId)?.name || 'Someone'} is thinking...` : "You are eliminated."
+                            ) : "Voting in progress..."}
+                        </div>
+                    )}
                 </div>
-
-                {/* 2. INPUT AREA (Only if my turn) */}
-                {phase === 'DESCRIPTION' && turnId === myId && me.isAlive && (
-                    <div className="p-3 flex gap-2 w-full max-w-4xl mx-auto animate-in slide-in-from-bottom-10">
-                        <input
-                            type="text"
-                            placeholder="Describe your word..."
-                            className="flex-1 bg-slate-800 border-2 border-primary rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                            value={inputDesc}
-                            onChange={e => setInputDesc(e.target.value)}
-                            onFocus={() => socket.emit('typing_start', { roomId: room.id })}
-                            onBlur={() => socket.emit('typing_stop', { roomId: room.id })}
-                            onKeyDown={e => e.key === 'Enter' && submitDesc()}
-                            maxLength={200}
-                            autoFocus
-                        />
-                        <button
-                            onClick={submitDesc}
-                            className="bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-500 text-white p-3 rounded-xl transition-all shadow-lg active:scale-95 font-bold px-6"
-                        >
-                            SEND
-                        </button>
-                    </div>
-                )}
-
-                {/* 2b. WAITING MESSAGE (If text input not visible) */}
-                {phase === 'DESCRIPTION' && (turnId !== myId || !me.isAlive) && (
-                    <div className="p-2 text-center text-xs text-gray-500">
-                        {turnId !== myId
-                            ? `${room?.players?.find(p => p.id === turnId)?.name || 'Someone'} is thinking...`
-                            : "You are eliminated."}
-                    </div>
-                )}
             </div>
 
             {/* OVERLAY: ELIMINATION / GAME OVER */}

@@ -31,7 +31,8 @@ class GameManager {
             wordPair: null,
             round: 1,
             winners: null,
-            skippedCount: 0
+            skippedCount: 0,
+            previousRounds: []
         };
 
         this.rooms.set(roomId, roomState);
@@ -39,6 +40,7 @@ class GameManager {
     }
 
     joinRoom(roomId, playerName, socketId) {
+        roomId = roomId.toUpperCase(); // Case insensitive
         const room = this.rooms.get(roomId);
         if (!room) return { error: "Room not found" };
         if (room.status !== 'LOBBY') return { error: "Game already started" };
@@ -59,6 +61,7 @@ class GameManager {
     }
 
     rejoinGame(roomId, playerName, newSocketId) {
+        roomId = roomId.toUpperCase(); // Case insensitive
         const room = this.rooms.get(roomId);
         if (!room) return { error: "Room not found" };
 
@@ -310,6 +313,11 @@ class GameManager {
             this.io.to(roomId).emit('game_over', { winners: winner, allRoles: room.players });
         } else {
             // Start next round
+            // 0. Archive descriptions to history
+            if (room.descriptions.length > 0) {
+                room.previousRounds.push([...room.descriptions]);
+            }
+
             // Reset descriptions and votes
             room.phase = 'DESCRIPTION';
             room.descriptions = [];
@@ -358,6 +366,7 @@ class GameManager {
         room.round = 1;
         room.winners = null;
         room.skippedCount = 0;
+        room.previousRounds = [];
         room.turnOrder = [];
         room.config = null; // Optional: Reset config or keep it. Let's keep it? Actually safer to reset or let UI defaults take over. Let's reset to force Host to see defaults or re-configure.
 

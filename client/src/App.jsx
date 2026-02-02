@@ -211,7 +211,7 @@ function App() {
                   className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary"
                 />
                 <button
-                  onClick={() => joinRoom(document.getElementById('roomCodeInput').value)}
+                  onClick={() => joinRoom(document.getElementById('roomCodeInput').value.toUpperCase())}
                   className="bg-secondary hover:bg-pink-600 text-white font-bold py-3 px-6 rounded-lg transition-all"
                 >
                   Join
