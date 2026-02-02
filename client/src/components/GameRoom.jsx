@@ -418,7 +418,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
             </div>
 
             {/* REACTION FAB (Floating Action Button) */}
-            <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+            <div className="fixed bottom-6 left-6 z-50 flex flex-col items-start gap-2">
                 {showReactions && (
                     <div className="bg-slate-800 border border-gray-700 p-2 rounded-2xl shadow-xl flex flex-col gap-2 animate-in slide-in-from-bottom-5 fade-in duration-200 mb-2">
                         {['😂', '🤔', '😡', '👏', '👻', '👎'].map(emoji => (
