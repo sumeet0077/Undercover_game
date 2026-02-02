@@ -232,7 +232,8 @@ class GameManager {
             room.votes = {};
             this.io.to(roomId).emit('phase_change', { phase: 'VOTING' });
         } else {
-            this.io.to(roomId).emit('next_turn', { currentTurn: room.players[room.turnOrder[0]].id });
+            room.currentTurnIndex = room.turnOrder[0]; // Update for state sync
+            this.io.to(roomId).emit('next_turn', { currentTurn: room.players[room.currentTurnIndex].id });
         }
 
         this.io.to(roomId).emit('update_descriptions', room.descriptions);

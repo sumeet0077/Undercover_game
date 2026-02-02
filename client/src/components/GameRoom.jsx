@@ -34,6 +34,15 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
 
     const me = room?.players?.find(p => p.id === myId);
 
+    // Auto-clear typing after 3 seconds of silence (fixes stuck bubbles)
+    useEffect(() => {
+        if (!typingInfo?.isTyping) return;
+        const timer = setTimeout(() => {
+            setTypingInfo(null);
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [typingInfo]);
+
     // Robust Turn Check: ID match OR Name match (handles socket ID shifts on rejoin)
     const turnPlayer = room?.players?.find(p => p.id === turnId);
     const isMyTurn = turnId === myId || (me && turnPlayer && me.name === turnPlayer.name);
@@ -85,7 +94,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
         });
 
         socket.on('player_typing', ({ playerId, isTyping }) => {
-            setTypingInfo({ playerId, isTyping });
+            setTypingInfo({ playerId, isTyping, timestamp: Date.now() });
             if (isTyping) scrollToBottom();
         });
 
