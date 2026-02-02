@@ -311,143 +311,64 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
                         )}
                     </div>
 
-                    {/* INPUT AREA */}
-                    {phase === 'DESCRIPTION' && turnId === myId && me.isAlive && (
-                        <div className="mt-4 flex gap-2">
-                            <input
-                                type="text"
-                                placeholder="Describe your word..."
-                                className="flex-1 bg-slate-900 border border-gray-600 rounded-lg px-4 focus:outline-none focus:border-primary"
-                                value={inputDesc}
-                                onChange={e => setInputDesc(e.target.value)}
-                                onFocus={() => socket.emit('typing_start', { roomId: room.id })}
-                                onBlur={() => socket.emit('typing_stop', { roomId: room.id })}
-                                onKeyDown={e => e.key === 'Enter' && submitDesc()}
-                                maxLength={200}
-                                autoFocus
-                            />
-                            <button
-                                onClick={submitDesc}
-                                className="bg-primary hover:bg-violet-600 text-white p-3 rounded-lg transition-colors"
-                            >
-                                <Send size={20} />
-                            </button>
-                        </div>
-                    )}
-                    {phase === 'DESCRIPTION' && turnId !== myId && (
-                        <div className="mt-4 p-3 bg-slate-900/50 rounded-lg text-center text-gray-500 text-sm flex justify-center items-center gap-2">
-                            {typingInfo && typingInfo.isTyping && typingInfo.playerId === turnId ? (
-                                <>
-                                    <span className="animate-pulse">✍️</span>
-                                    <span className="text-primary font-bold animate-pulse">
-                                        {room?.players?.find(p => p.id === turnId)?.name || 'Player'} is typing...
-                                    </span>
-                                </>
-                            ) : (
-                                "Waiting for active player..."
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
+                    {/* BOTTOM DOCK: REACTIONS (Always) + INPUT (Conditional) */}
+                    <div className="fixed bottom-0 left-0 w-full bg-slate-900/95 backdrop-blur border-t border-gray-700 z-50 flex flex-col pb-safe">
 
-            {/* OVERLAY: ELIMINATION / GAME OVER */}
-            {eliminatedInfo && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 animate-in fade-in">
-                    <div className="bg-card p-8 rounded-2xl max-w-sm w-full text-center border border-gray-600 shadow-2xl">
-                        <h2 className="text-3xl font-bold mb-4 text-white">
-                            {eliminatedInfo.result === 'Tie' ? 'TIE - NO ELIMINATION' :
-                                eliminatedInfo.result === 'Skipped' ? 'VOTE SKIPPED' : 'ELIMINATED'}
-                        </h2>
-                        {eliminatedInfo.eliminated && (
-                            <div className="mb-6">
-                                <div className="text-6xl mb-4">💀</div>
-                                <div className="text-2xl font-bold text-red-500 mb-2">{eliminatedInfo.eliminated.name}</div>
-                                <div className="text-gray-400">was a <span className="text-white font-bold">{eliminatedInfo.eliminated.role}</span></div>
-                            </div>
-                        )}
-                        <div className="text-gray-500 text-sm animate-pulse">Next round starting soon...</div>
-                    </div>
-                </div>
-            )}
-
-            {gameResult && (
-                <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 animate-in zoom-in duration-300">
-                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-10 rounded-3xl max-w-2xl w-full text-center border border-gray-600 shadow-2xl">
-                        <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-8">
-                            {gameResult.winners} WIN!
-                        </h1>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left max-h-[400px] overflow-y-auto">
-                            {gameResult.allRoles.map(p => (
-                                <div key={p.id} className="bg-slate-900/50 p-4 rounded-xl flex justify-between items-center">
-                                    <span className="font-bold text-lg">{p.name}</span>
-                                    <div className="text-right">
-                                        <div className="text-xs text-gray-400">ROLE</div>
-                                        <div className={clsx(
-                                            "font-bold",
-                                            p.role === 'CIVILIAN' ? "text-green-400" : "text-red-400"
-                                        )}>{p.role}</div>
-                                        <div className="text-xs text-gray-500">{p.word}</div>
-                                    </div>
-                                </div>
+                        {/* 1. REACTIONS BAR (Scrollable Row) */}
+                        <div className="flex items-center justify-center gap-2 p-2 overflow-x-auto no-scrollbar border-b border-gray-800/50">
+                            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mr-2 shrink-0">React:</span>
+                            {['😂', '🤔', '😡', '👏', '👻', '👎', '❤️', '🔥'].map(emoji => (
+                                <button
+                                    key={emoji}
+                                    onClick={() => handleReaction(emoji)}
+                                    className="text-2xl hover:scale-125 transition-transform p-2 active:scale-95"
+                                >
+                                    {emoji}
+                                </button>
                             ))}
                         </div>
 
-                        <button
-                            onClick={() => socket.emit('return_to_lobby', { roomId: room.id })}
-                            className="mt-8 bg-white text-black font-bold py-3 px-8 rounded-full hover:scale-105 transition-transform"
-                        >
-                            RETURN TO LOBBY
-                        </button>
+                        {/* 2. INPUT AREA (Only if my turn) */}
+                        {phase === 'DESCRIPTION' && turnId === myId && me.isAlive && (
+                            <div className="p-3 flex gap-2 w-full max-w-4xl mx-auto animate-in slide-in-from-bottom-10">
+                                <input
+                                    type="text"
+                                    placeholder="Describe your word..."
+                                    className="flex-1 bg-slate-800 border-2 border-primary rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-accent"
+                                    value={inputDesc}
+                                    onChange={e => setInputDesc(e.target.value)}
+                                    onFocus={() => socket.emit('typing_start', { roomId: room.id })}
+                                    onBlur={() => socket.emit('typing_stop', { roomId: room.id })}
+                                    onKeyDown={e => e.key === 'Enter' && submitDesc()}
+                                    maxLength={200}
+                                    autoFocus
+                                />
+                                <button
+                                    onClick={submitDesc}
+                                    className="bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-500 text-white p-3 rounded-xl transition-all shadow-lg active:scale-95 font-bold px-6"
+                                >
+                                    SEND
+                                </button>
+                            </div>
+                        )}
+
+                        {/* 2b. WAITING MESSAGE (If text input not visible) */}
+                        {phase === 'DESCRIPTION' && (turnId !== myId || !me.isAlive) && (
+                            <div className="p-2 text-center text-xs text-gray-500">
+                                {turnId !== myId
+                                    ? `${room?.players?.find(p => p.id === turnId)?.name || 'Someone'} is thinking...`
+                                    : "You are eliminated."}
+                            </div>
+                        )}
                     </div>
+
+                    {/* SPACER for fixed bottom dock to prevent overlap */}
+                    <div className="h-40 w-full"></div>
+
                 </div>
-            )}
 
-            {/* FLOATING REACTIONS LAYER (Pointer events none allows clicking through) */}
-            <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
-                {reactions.map(r => (
-                    <div
-                        key={r.id}
-                        className="absolute bottom-20 text-4xl animate-float"
-                        style={{ left: `${r.left}%` }}
-                    >
-                        {r.emoji}
-                    </div>
-                ))}
             </div>
-
-            {/* REACTION FAB (Floating Action Button) */}
-            <div className="fixed bottom-6 left-6 z-50 flex flex-col items-start gap-2">
-                {showReactions && (
-                    <div className="bg-slate-800 border border-gray-700 p-2 rounded-2xl shadow-xl flex flex-col gap-2 animate-in slide-in-from-bottom-5 fade-in duration-200 mb-2">
-                        {['😂', '🤔', '😡', '👏', '👻', '👎'].map(emoji => (
-                            <button
-                                key={emoji}
-                                onClick={() => {
-                                    handleReaction(emoji);
-                                    setShowReactions(false); // Optional: close after pick? Let's keep open for spamming
-                                }}
-                                className="text-2xl hover:scale-125 transition-transform p-2"
-                            >
-                                {emoji}
-                            </button>
-                        ))}
-                    </div>
-                )}
-                <button
-                    onClick={() => setShowReactions(!showReactions)}
-                    className={clsx(
-                        "w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all bg-slate-700 hover:bg-slate-600 text-white border border-gray-600",
-                        showReactions && "bg-primary border-primary rotate-45" // Rotate to X? Or just highlight
-                    )}
-                >
-                    {showReactions ? <span className="text-2xl font-bold">✕</span> : <span className="text-2xl">😊</span>}
-                </button>
-            </div>
-
-        </div>
-    );
+            );
 };
 
-export default GameRoom;
+            export default GameRoom;

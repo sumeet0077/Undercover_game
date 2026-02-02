@@ -56,7 +56,8 @@ io.on('connection', (socket) => {
             }
 
             // 2. Send room state
-            socket.emit('room_update', room);
+            // BROADCAST to everyone so they know this player has a new ID
+            io.to(roomId).emit('room_update', room);
 
             // 3. If game is running, sync game state
             if (room.status === 'PLAYING' || room.status === 'GAMEOVER') {
