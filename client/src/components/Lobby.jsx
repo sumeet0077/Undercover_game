@@ -2,7 +2,7 @@ import React from 'react';
 import { Users, Play, Copy } from 'lucide-react';
 
 const Lobby = ({ room, socket, myId }) => {
-    const isHost = room.players.find(p => p.id === myId)?.isHost;
+    const isHost = room?.players?.find(p => p.id === myId)?.isHost;
     const [ucCount, setUcCount] = React.useState(1);
     const [mrWhiteCount, setMrWhiteCount] = React.useState(0);
     const [showRole, setShowRole] = React.useState(false);
@@ -53,7 +53,7 @@ const Lobby = ({ room, socket, myId }) => {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-                {room.players.map((player) => (
+                {room?.players?.map((player) => (
                     <div key={player.id} className="aspect-square bg-card rounded-2xl flex flex-col items-center justify-center border border-gray-700 shadow-xl relative animate-in fade-in zoom-in duration-300">
                         <div className="bg-gradient-to-br from-primary to-secondary w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mb-4">
                             {player.name[0].toUpperCase()}

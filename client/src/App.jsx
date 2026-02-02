@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import Lobby from './components/Lobby';
 import GameRoom from './components/GameRoom';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const socket = io(import.meta.env.VITE_SERVER_URL || 'http://localhost:3000', {
   transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
@@ -149,79 +150,86 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      {error && (
-        <div className="fixed top-4 bg-red-500 text-white px-6 py-3 rounded-full shadow-lg z-50 animate-bounce">
-          {error}
-        </div>
-      )}
-
-      {gameState === 'LANDING' && (
-        <div className="max-w-md w-full space-y-8 text-center flex flex-col items-center">
-          {/* Connection Status Badge */}
-          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold font-mono transition-colors ${isConnected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-            {isConnected ? '● CONNECTED' : '○ DISCONNECTED'}
-            {!isConnected && (
-              <span className="text-[10px] opacity-70">
-                ({import.meta.env.VITE_SERVER_URL || 'localhost:3000'})
-              </span>
-            )}
+    <ErrorBoundary>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        {error && (
+          <div className="fixed top-4 bg-red-500 text-white px-6 py-3 rounded-full shadow-lg z-50 animate-bounce">
+            {error}
           </div>
-          {connectionError && (
-            <div className="text-xs text-red-400 bg-red-900/30 p-2 rounded">
-              Server Error: {connectionError}
-            </div>
-          )}
+        )}
 
-          <img
-            src="/logo.png"
-            alt="Undercover Logo"
-            className="w-48 md:w-64 h-auto drop-shadow-2xl mb-8 hover:scale-105 transition-transform duration-300"
-          />
-          <div className="space-y-4 bg-card p-8 rounded-2xl shadow-2xl border border-gray-700">
-            <input
-              type="text"
-              placeholder="Your Name"
-              className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary mb-4"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-            />
-            <button
-              onClick={createRoom}
-              className="w-full bg-primary hover:bg-violet-600 text-white font-bold py-3 px-4 rounded-lg transition-all"
-            >
-              Create New Room
-            </button>
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-600"></div></div>
-              <div className="relative flex justify-center text-sm"><span className="px-2 bg-card text-gray-400">Or join existing</span></div>
+        {gameState === 'LANDING' && (
+          // ... (content preserved implicitly by tool, but I need to be careful. I will wrap the WHOLE return)
+          // Actually, easier to wrap inside the div? No, ErrorBoundary should be top level to catch div errors too.
+          // But div has key styles. Using ErrorBoundary as root is fine.
+
+          <div className="max-w-md w-full space-y-8 text-center flex flex-col items-center">
+            {/* ... LANDING CONTENT ... */}
+            {/* Connection Status Badge */}
+            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold font-mono transition-colors ${isConnected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+              {isConnected ? '● CONNECTED' : '○ DISCONNECTED'}
+              {!isConnected && (
+                <span className="text-[10px] opacity-70">
+                  ({import.meta.env.VITE_SERVER_URL || 'localhost:3000'})
+                </span>
+              )}
             </div>
-            <div className="flex gap-2">
+            {connectionError && (
+              <div className="text-xs text-red-400 bg-red-900/30 p-2 rounded">
+                Server Error: {connectionError}
+              </div>
+            )}
+
+            <img
+              src="/logo.png"
+              alt="Undercover Logo"
+              className="w-48 md:w-64 h-auto drop-shadow-2xl mb-8 hover:scale-105 transition-transform duration-300"
+            />
+            <div className="space-y-4 bg-card p-8 rounded-2xl shadow-2xl border border-gray-700">
               <input
-                id="roomCodeInput"
                 type="text"
-                placeholder="Room Code"
-                className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary"
+                placeholder="Your Name"
+                className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary mb-4"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
               />
               <button
-                onClick={() => joinRoom(document.getElementById('roomCodeInput').value)}
-                className="bg-secondary hover:bg-pink-600 text-white font-bold py-3 px-6 rounded-lg transition-all"
+                onClick={createRoom}
+                className="w-full bg-primary hover:bg-violet-600 text-white font-bold py-3 px-4 rounded-lg transition-all"
               >
-                Join
+                Create New Room
               </button>
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-600"></div></div>
+                <div className="relative flex justify-center text-sm"><span className="px-2 bg-card text-gray-400">Or join existing</span></div>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  id="roomCodeInput"
+                  type="text"
+                  placeholder="Room Code"
+                  className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary"
+                />
+                <button
+                  onClick={() => joinRoom(document.getElementById('roomCodeInput').value)}
+                  className="bg-secondary hover:bg-pink-600 text-white font-bold py-3 px-6 rounded-lg transition-all"
+                >
+                  Join
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {gameState === 'LOBBY' && room && (
-        <Lobby room={room} socket={socket} myId={myId} />
-      )}
+        {gameState === 'LOBBY' && room && (
+          <Lobby room={room} socket={socket} myId={myId} />
+        )}
 
-      {gameState === 'PLAYING' && room && (
-        <GameRoom room={room} socket={socket} myId={myId} roleInfo={roleInfo} />
-      )}
-    </div>
+        {gameState === 'PLAYING' && room && (
+          <GameRoom room={room} socket={socket} myId={myId} roleInfo={roleInfo} />
+        )}
+      </div>
+    </ErrorBoundary>
   );
 }
 
