@@ -31,7 +31,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
 
     const me = room?.players?.find(p => p.id === myId);
 
-    if (!me) return <div className="text-center mt-20 text-red-500">Error: Player data missing. Please rejoin.</div>;
+    if (!room || !me || !roleInfo) return <div className="text-center mt-20">Loading game data... (Player/Role missing)</div>;
 
     useEffect(() => {
         // socket.on('your_info', (info) => { setRoleInfo(info); }); // Handled in App.jsx
@@ -149,7 +149,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
         socket.emit('submit_vote', { roomId: room.id, targetId });
     };
 
-    if (!roleInfo) return <div className="text-center mt-20">Loading game data...</div>;
+    if (!roleInfo || !me) return <div className="text-center mt-20 text-gray-400 animate-pulse">Loading game data...</div>;
 
     return (
         <div className="max-w-4xl w-full flex flex-col items-center">
