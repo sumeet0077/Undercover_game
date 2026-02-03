@@ -377,9 +377,16 @@ class GameManager {
             return 'CIVILIANS';
         }
         // Undercovers win if they equal or outnumber civilians (standard rules often say 1:1 is win for UC)
-        if (aliveUndercovers >= aliveCivilians) {
+        if (aliveUndercovers > aliveCivilians) {
             return 'UNDERCOVERS';
         }
+        // Special Case: 1v1 (or 1v1v1 etc) - If it's down to 1 Civilian and 1 Undercover, Undercover wins (stalemate breaker)
+        // But if it's 2v2, we let them play (maybe they vote incorrectly)
+        if (aliveUndercovers === aliveCivilians && aliveCivilians === 1) {
+            return 'UNDERCOVERS';
+        }
+
+        // If 2v2 (U==C && C>1), we return null (Game Continues) as per user request
         return null;
     }
 
