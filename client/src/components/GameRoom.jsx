@@ -11,11 +11,13 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
     const [history, setHistory] = useState([]); // Previous rounds
     const [turnId, setTurnId] = useState('');
     const [phase, setPhase] = useState('DESCRIPTION'); // DESCRIPTION, VOTING, GAMEOVER
-    const [voteCount, setVoteCount] = useState(0);
-    const [totalVoteCount, setTotalVoteCount] = useState(0);
+    const [phase, setPhase] = useState('DESCRIPTION'); // DESCRIPTION, VOTING, GAMEOVER
+    // Derived state from room prop (Centralized Truth)
+    const voteCount = room.votes ? Object.keys(room.votes).length : 0;
+    const totalVoteCount = room.players ? room.players.filter(p => p.isAlive).length : 0;
+    const hasVoted = room.votes && room.votes[myId];
+
     const [eliminatedInfo, setEliminatedInfo] = useState(null);
-    const [gameResult, setGameResult] = useState(null);
-    const [hasVoted, setHasVoted] = useState(false);
     const [typingInfo, setTypingInfo] = useState(null);
     const [reactions, setReactions] = useState([]);
     const [showReactions, setShowReactions] = useState(false);
@@ -75,12 +77,6 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
             setGameResult(null);
         });
 
-        socket.on('update_votes', ({ count, total }) => {
-            setVoteCount(count);
-            setTotalVoteCount(total);
-            // Room votes updated via parent 'room' prop from App.jsx
-        });
-
         socket.on('voting_result', ({ result, eliminated }) => {
             setEliminatedInfo({ result, eliminated }); // Show popup or banner
 
@@ -92,10 +88,6 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
             setTimeout(() => {
                 setEliminatedInfo(null);
             }, 5000);
-        });
-
-        socket.on('vote_confirmed', ({ targetId }) => {
-            setHasVoted(true);
         });
 
         socket.on('player_typing', ({ playerId, isTyping }) => {
@@ -110,8 +102,6 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
             // History update happens via room_update or we can rely on local append, 
             // but relying on room sync is safer if we implement it. 
             // For now, let's rely on 'room_update' which sends the full room object including history.
-            setVoteCount(0);
-            setHasVoted(false);
         });
 
         socket.on('game_over', ({ winners, allRoles }) => {
@@ -133,12 +123,8 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
         });
 
         return () => {
-            socket.off('update_descriptions');
-            socket.off('next_turn');
             socket.off('phase_change');
             socket.off('game_started');
-            socket.off('update_votes');
-            socket.off('vote_confirmed');
             socket.off('voting_result');
             socket.off('new_round');
             socket.off('game_over');
