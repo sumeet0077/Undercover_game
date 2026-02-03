@@ -18,6 +18,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
     const hasVoted = room.votes && room.votes[myId];
 
     const [eliminatedInfo, setEliminatedInfo] = useState(null);
+    const [gameResult, setGameResult] = useState(null);
     const [typingInfo, setTypingInfo] = useState(null);
     const [reactions, setReactions] = useState([]);
     const [showReactions, setShowReactions] = useState(false);
