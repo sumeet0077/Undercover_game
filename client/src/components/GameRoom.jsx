@@ -11,7 +11,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
     const [history, setHistory] = useState([]); // Previous rounds
     const [turnId, setTurnId] = useState('');
     const [phase, setPhase] = useState('DESCRIPTION'); // DESCRIPTION, VOTING, GAMEOVER
-    const [phase, setPhase] = useState('DESCRIPTION'); // DESCRIPTION, VOTING, GAMEOVER
+
     // Derived state from room prop (Centralized Truth)
     const voteCount = room.votes ? Object.keys(room.votes).length : 0;
     const totalVoteCount = room.players ? room.players.filter(p => p.isAlive).length : 0;
