@@ -146,6 +146,7 @@ class GameManager {
             phase: room.phase,
             currentTurn: room.players[room.turnOrder[0]].id
         });
+        this.io.to(roomId).emit('room_update', room); // SYNC APP STATE
 
         // Send individual info
         players.forEach(p => {
@@ -243,6 +244,7 @@ class GameManager {
             room.phase = 'VOTING';
             room.votes = {};
             this.io.to(roomId).emit('phase_change', { phase: 'VOTING' });
+            this.io.to(roomId).emit('room_update', room); // SYNC APP STATE (Prevent reversion)
         } else {
             room.currentTurnIndex = room.turnOrder[0]; // Update for state sync
             this.io.to(roomId).emit('next_turn', { currentTurn: room.players[room.currentTurnIndex].id });
