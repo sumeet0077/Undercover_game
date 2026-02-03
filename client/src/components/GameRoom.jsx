@@ -75,14 +75,10 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
             setGameResult(null);
         });
 
-        socket.on('update_votes', ({ count, total, votes }) => {
+        socket.on('update_votes', ({ count, total }) => {
             setVoteCount(count);
             setTotalVoteCount(total);
-            if (votes) {
-                // Real-time update of who voted
-                // We must update the generic 'room' state because the UI reads from room.votes
-                setRoom(prev => prev ? ({ ...prev, votes }) : prev);
-            }
+            // Room votes updated via parent 'room' prop from App.jsx
         });
 
         socket.on('voting_result', ({ result, eliminated }) => {

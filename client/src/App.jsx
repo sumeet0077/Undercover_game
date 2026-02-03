@@ -53,7 +53,10 @@ function App() {
     socket.on('connect_error', (err) => {
       console.error("Connection error:", err);
       setIsConnected(false);
-      setConnectionError(`Connection Failed: ${err.message}. Check Server URL.`);
+      // Only show intrusive error if not yet playing. If playing, user will just see disconnected badge.
+      if (gameState === 'LANDING') {
+        setConnectionError(`Connection Failed: ${err.message}. Check Server URL.`);
+      }
     });
 
     socket.on('room_created', ({ roomId, room }) => {
@@ -89,6 +92,15 @@ function App() {
       setGameState('PLAYING');
     });
 
+    socket.on('update_votes', ({ count, total, votes }) => {
+      // App handles room state updates centrally
+      setRoom(prev => {
+        if (!prev) return prev;
+        // Merge votes into room state
+        return { ...prev, votes: votes || prev.votes };
+      });
+    });
+
     // --- NEW HANDLERS ---
     socket.on('room_destroyed', () => {
       alert("The host has ended the game.");
@@ -116,6 +128,7 @@ function App() {
       socket.off('error');
       socket.off('game_started');
       socket.off('room_destroyed');
+      socket.off('update_votes'); // Clean up
       socket.off('left_room_success');
     };
   }, [playerName]);
