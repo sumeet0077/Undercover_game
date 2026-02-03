@@ -68,9 +68,21 @@ class GameManager {
         const player = room.players.find(p => p.name === playerName);
         if (!player) return { error: "Player not found in this room" };
 
-        // Update socket ID
+        const oldId = player.id;
         player.id = newSocketId;
         player.isAlive = true; // Mark as alive if they were marked dead by disconnect (optional choice)
+
+        // MIGRATE VOTES (If in Voting phase)
+        // This prevents crashes where a vote targets an Old Socket ID that no longer exists in players array
+        if (room.votes) {
+            const newVotes = {};
+            for (const [voterId, targetId] of Object.entries(room.votes)) {
+                const newVoterId = (voterId === oldId) ? newSocketId : voterId;
+                const newTargetId = (targetId === oldId) ? newSocketId : targetId;
+                newVotes[newVoterId] = newTargetId;
+            }
+            room.votes = newVotes;
+        }
 
         return { room, player };
     }
@@ -306,12 +318,18 @@ class GameManager {
             this.io.to(roomId).emit('voting_result', { result: 'Tie', eliminated: null });
         } else {
             const eliminatedPlayer = room.players.find(p => p.id === eliminatedId);
-            eliminatedPlayer.isAlive = false;
-            this.io.to(roomId).emit('voting_result', {
-                result: 'Eliminated',
-                eliminated: { name: eliminatedPlayer.name, role: eliminatedPlayer.role }
-            });
-            this.io.to(roomId).emit('room_update', room); // Sync dead status
+
+            if (!eliminatedPlayer) {
+                console.error(`CRITICAL: Eliminated player not found! ID: ${eliminatedId}. Skipping elimination.`);
+                this.io.to(roomId).emit('voting_result', { result: 'Skipped', eliminated: null });
+            } else {
+                eliminatedPlayer.isAlive = false;
+                this.io.to(roomId).emit('voting_result', {
+                    result: 'Eliminated',
+                    eliminated: { name: eliminatedPlayer.name, role: eliminatedPlayer.role }
+                });
+                this.io.to(roomId).emit('room_update', room); // Sync dead status
+            }
         }
 
         // Check Win Condition
