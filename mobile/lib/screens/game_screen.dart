@@ -26,7 +26,14 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
   bool _hasPlayedGameOverSound = false;
   bool _showReactions = false;
   bool _showSecretWord = false; 
-  int _lastAnnouncedRound = 0; // Track round to avoid spam
+  bool _hasPlayedGameOverSound = false;
+  bool _showReactions = false;
+  bool _showSecretWord = false; 
+  int _lastAnnouncedRound = 0;
+  
+  // TTS State
+  bool _ttsInitialized = false;
+  Future<void>? _ttsInitFuture;
 
   @override
   void initState() {
@@ -36,7 +43,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _initTts();
+    _ttsInitFuture = _initTts();
     // Add listener for round changes
     // We defer to didChangeDependencies or a post-frame callback to attach listener safely if provider is up
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -47,30 +54,27 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
     });
   }
 
-  void _initTts() async {
-    await _flutterTts.setLanguage("en-US");
-    await _flutterTts.setSpeechRate(0.5);
-    await _flutterTts.setVolume(1.0);
-    await _flutterTts.setPitch(1.0);
-    
-    // Attempt to set a female voice (heuristic)
-    // On Android/iOS, voices are platform dependent.
-    // simpler to just use default or iterating is complex.
-    // We'll rely on default for now, or try to pick one if available list.
+  Future<void> _initTts() async {
     try {
+      await _flutterTts.setLanguage("en-US");
+      await _flutterTts.setSpeechRate(0.5);
+      await _flutterTts.setVolume(1.0);
+      await _flutterTts.setPitch(1.0);
+      await _flutterTts.awaitSpeakCompletion(true); // Ensure we wait for speech to finish logic internally
+
+      // Attempt to set a female voice (heuristic)
       var voices = await _flutterTts.getVoices;
       if (voices != null) {
-         // rough heuristic for IOS/Android female names
-         // This is optional and might fail, so wrap in try
          final voice = voices.firstWhere((v) => 
             v['name'].toString().toLowerCase().contains('female') || 
             v['name'].toString().toLowerCase().contains('samantha') ||
-            v['name'].toString().toLowerCase().contains('en-us-x-sfg') // Android google tts female
+            v['name'].toString().toLowerCase().contains('en-us-x-sfg')
          , orElse: () => null);
          if (voice != null) {
            await _flutterTts.setVoice({"name": voice["name"], "locale": voice["locale"]});
          }
       }
+      _ttsInitialized = true;
     } catch (e) {
       print("TTS setup error: $e");
     }
@@ -94,9 +98,17 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
   }
 
   void _speakRound(int round) async {
-    // Stop any existing speech first to prevent overlap
-    await _flutterTts.stop();
-    // No delay needed for instant reaction
+    // Wait for init if not ready
+    if (!_ttsInitialized && _ttsInitFuture != null) {
+      await _ttsInitFuture;
+    }
+    
+    // Check again after await
+    if (!_ttsInitialized) return;
+
+    // Do NOT call stop() here unless necessary, as it can cut off the very start 
+    // of the speech if called in rapid succession on some engines.
+    // FlutterTTS usually handles queue/flush.
     await _flutterTts.speak("Round $round");
   }
 
