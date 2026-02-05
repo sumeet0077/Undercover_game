@@ -26,11 +26,6 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
   bool _hasPlayedGameOverSound = false;
   bool _showReactions = false;
   bool _showSecretWord = false; 
-  bool _hasPlayedGameOverSound = false;
-  bool _showReactions = false;
-  bool _showSecretWord = false; 
-  int _lastAnnouncedRound = 0;
-  
   // TTS State
   bool _ttsInitialized = false;
   Future<void>? _ttsInitFuture;
