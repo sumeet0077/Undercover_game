@@ -59,14 +59,18 @@ class _LobbyScreenState extends State<LobbyScreen> with WidgetsBindingObserver {
     }
 
     // Back to Landing if room destroyed or left
-    if (!_isNavigating && room == null) {
-      _isNavigating = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LandingScreen()));
-      });
-      return const SizedBox(); // Empty while navigating
+    if (room == null) {
+      if (!_isNavigating) {
+         _isNavigating = true;
+         WidgetsBinding.instance.addPostFrameCallback((_) {
+           if (!mounted) return;
+           Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LandingScreen()));
+         });
+      }
+      return const SizedBox(); 
     }
+    // Now room is promoted to non-null Room because we returned if it was null.
+
 
     final isHost = room.players.firstWhere((p) => p.id == gameProvider.socketId, orElse: () => room.players.first).isHost;
     // Note: socketId might need to be compared carefully. 
