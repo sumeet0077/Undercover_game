@@ -141,8 +141,33 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
             socket.off('notification');
             socket.off('player_typing');
             socket.off('receive_reaction');
-        }
+        };
     }, [socket]);
+
+    // VOICE ANNOUNCEMENT: "Round X"
+    useEffect(() => {
+        if (phase === 'DESCRIPTION' && room?.round) {
+            const roundNum = room.round;
+            // Debounce slightly to ensure state is clean
+            const timer = setTimeout(() => {
+                const synth = window.speechSynthesis;
+                if (!synth) return;
+
+                // Cancel previous
+                synth.cancel();
+
+                const utterance = new SpeechSynthesisUtterance(`Round ${roundNum}`);
+                // Try to find a female voice
+                const voices = synth.getVoices();
+                const femaleVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google US English'));
+                if (femaleVoice) utterance.voice = femaleVoice;
+
+                utterance.rate = 0.9;
+                synth.speak(utterance);
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [phase, room?.round]);
 
     // Handle re-sync
     // Handle re-sync

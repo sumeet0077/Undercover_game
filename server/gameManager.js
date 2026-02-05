@@ -181,12 +181,19 @@ class GameManager {
             // Mr. White stays null
         });
 
-        // Update room state
+        // FULL RESTART LOGIC
         room.wordPair = pair;
-        room.descriptions = []; // Reset descriptions for fairness
+        room.descriptions = []; // Reset descriptions
         room.votes = {}; // Clear votes
-        room.phase = 'DESCRIPTION'; // Always go back to description
-        // room.currentTurnIndex does not change, turn stays with current player
+        room.phase = 'DESCRIPTION';
+        room.round = 1; // Reset round
+        room.previousRounds = []; // Clear history
+        room.skippedCount = 0;
+
+        // Randomize turn order again for fairness
+        const startPlayerIndex = Math.floor(Math.random() * room.players.length);
+        room.currentTurnIndex = startPlayerIndex;
+        room.turnOrder = this.getAlivePlayersIndices(room, startPlayerIndex);
 
         // 1. Send Individual Info update
         room.players.forEach(p => {
@@ -196,10 +203,18 @@ class GameManager {
             });
         });
 
-        // 2. Notify Room (Clears feed)
-        this.io.to(roomId).emit('update_descriptions', []);
-        this.io.to(roomId).emit('phase_change', { phase: 'DESCRIPTION' }); // Sync phase
-        this.io.to(roomId).emit('notification', { message: "🔄 Host reshuffled the words! Check your role again." });
+        // 2. Notify Room (Clears feed, resets round)
+        // We use full_sync to ensure client gets the 'round: 1' and empty history
+        this.io.to(roomId).emit('full_sync', { room });
+
+        // Also emit specific events for UI triggers
+        this.io.to(roomId).emit('game_started', {
+            status: room.status,
+            phase: room.phase,
+            currentTurn: room.players[room.turnOrder[0]].id
+        });
+
+        this.io.to(roomId).emit('notification', { message: "🔄 Host re-rolled! New words, new game!" });
 
         return { success: true };
     }

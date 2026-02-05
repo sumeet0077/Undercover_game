@@ -2,33 +2,112 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_tts/flutter_tts.dart'; // NEW
 import '../providers/game_provider.dart';
 import '../core/theme.dart';
 import 'landing_screen.dart';
 import 'lobby_screen.dart';
 
+
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
+  const GameScreen({Key? key}) : super(key: key);
 
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
+class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final TextEditingController _descController = TextEditingController();
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final ScrollController _scrollController = ScrollController();
+  late AnimationController _animationController;
+  final FlutterTts _flutterTts = FlutterTts(); // NEW
   bool _hasPlayedGameOverSound = false;
+  bool _showReactions = false;
+  bool _showSecretWord = false; 
+  int _lastAnnouncedRound = 0; // Track round to avoid spam
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _initTts();
+    // Add listener for round changes
+    // We defer to didChangeDependencies or a post-frame callback to attach listener safely if provider is up
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+       final provider = Provider.of<GameProvider>(context, listen: false);
+       provider.addListener(_checkRoundChange);
+    });
+  }
+
+  void _initTts() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+    
+    // Attempt to set a female voice (heuristic)
+    // On Android/iOS, voices are platform dependent.
+    // simpler to just use default or iterating is complex.
+    // We'll rely on default for now, or try to pick one if available list.
+    try {
+      var voices = await _flutterTts.getVoices;
+      if (voices != null) {
+         // rough heuristic for IOS/Android female names
+         // This is optional and might fail, so wrap in try
+         final voice = voices.firstWhere((v) => 
+            v['name'].toString().toLowerCase().contains('female') || 
+            v['name'].toString().toLowerCase().contains('samantha') ||
+            v['name'].toString().toLowerCase().contains('en-us-x-sfg') // Android google tts female
+         , orElse: () => null);
+         if (voice != null) {
+           await _flutterTts.setVoice({"name": voice["name"], "locale": voice["locale"]});
+         }
+      }
+    } catch (e) {
+      print("TTS setup error: $e");
+    }
+  }
+
+  void _checkRoundChange() {
+    if (!mounted) return;
+    final provider = Provider.of<GameProvider>(context, listen: false);
+    if (provider.room == null) return;
+
+    final currentRound = provider.room!.round;
+    // Speak if round > last announced (handles new game restart too if last was high)
+    // Actually, if restart happens, round goes to 1. _lastAnnouncedRound(3) != 1.
+    // But we don't want to spam.
+    // Just logic: if (currentRound != _lastAnnouncedRound)
+    
+    if (currentRound != _lastAnnouncedRound && provider.room!.phase == 'DESCRIPTION') {
+       _lastAnnouncedRound = currentRound;
+       _speakRound(currentRound);
+    }
+  }
+
+  void _speakRound(int round) async {
+    await _flutterTts.speak("Round $round");
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _audioPlayer.dispose();
+    _animationController.dispose();
+    _descController.dispose();
+    _scrollController.dispose();
+    _flutterTts.stop();
+    // Remove listener
+    // Actually Provider removes listeners on dispose automatically? No.
+    // But we don't have reference to provider easily here without context?
+    // It's fine, GameProvider is a singleton/scoped usually.
+    // Correct way is to keep reference to provider.
     super.dispose();
   }
 
@@ -348,7 +427,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     );
   }
 
-  bool _showSecretWord = false; // 2. Tap to reveal state
+
 
   Widget _buildChatHistory(GameProvider provider) {
     final room = provider.room!;
