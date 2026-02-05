@@ -212,7 +212,7 @@ class _LobbyScreenState extends State<LobbyScreen> with WidgetsBindingObserver {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Undercover', style: TextStyle(color: Colors.white, fontSize: 16)),
+                      const Text('Sigma', style: TextStyle(color: Colors.white, fontSize: 16)),
                       Row(
                         children: [
                           IconButton(onPressed: () => setState(() => _ucCount = (_ucCount > 0) ? _ucCount - 1 : 0), icon: const Icon(Icons.remove_circle_outline)),
@@ -225,7 +225,7 @@ class _LobbyScreenState extends State<LobbyScreen> with WidgetsBindingObserver {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Mr. White', style: TextStyle(color: Colors.white, fontSize: 16)),
+                      const Text('Glitch', style: TextStyle(color: Colors.white, fontSize: 16)),
                       Row(
                         children: [
                           IconButton(onPressed: () => setState(() => _mrWhiteCount = (_mrWhiteCount > 0) ? _mrWhiteCount - 1 : 0), icon: const Icon(Icons.remove_circle_outline)),

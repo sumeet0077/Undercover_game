@@ -111,6 +111,34 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
     super.dispose();
   }
 
+  // ROLE NAME MAPPING HELPERS
+  String _getRoleDisplayName(String role) {
+    switch (role) {
+      case 'CIVILIAN': return 'THE PACK';
+      case 'UNDERCOVER': return 'THE SIGMA';
+      case 'MR_WHITE': return 'THE GLITCH';
+      default: return role;
+    }
+  }
+
+  String _getWinnerDisplayName(String? winners) {
+    switch (winners) {
+      case 'CIVILIANS': return 'THE PACK WINS!';
+      case 'UNDERCOVERS': return 'THE SIGMA WINS!';
+      case 'MR_WHITE': return 'THE GLITCH WINS!';
+      default: return '$winners WIN!';
+    }
+  }
+
+  String _getVictoryCaption(String? winners) {
+    switch (winners) {
+      case 'CIVILIANS': return 'Collective Aura Intact. The Sigma has been neutralized.';
+      case 'UNDERCOVERS': return 'TOTAL SIGMA DOMINATION';
+      case 'MR_WHITE': return 'SYSTEM REBOOT. The Glitch just stole your aura.';
+      default: return '';
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -298,7 +326,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
                           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red),
                         ),
                         Text(
-                          'was a ${gameProvider.eliminatedInfo!['eliminated']['role'] ?? 'Unknown'}',
+                          'was a ${_getRoleDisplayName(gameProvider.eliminatedInfo!['eliminated']['role'] ?? 'Unknown')}',
                           style: const TextStyle(color: Colors.white70),
                         ),
                       ],
@@ -333,13 +361,19 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          '${gameProvider.gameResult!['winners']} WIN!',
+                          _getWinnerDisplayName(gameProvider.gameResult!['winners']),
                           style: const TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
                             color: Colors.amber,
                           ),
                         ).animate().scale(duration: 300.ms),
+                        const SizedBox(height: 8),
+                        Text(
+                          _getVictoryCaption(gameProvider.gameResult!['winners']),
+                          style: const TextStyle(color: Colors.white70, fontSize: 14, fontStyle: FontStyle.italic),
+                          textAlign: TextAlign.center,
+                        ),
                         const SizedBox(height: 24),
                         Expanded(
                           child: ListView.builder(
@@ -363,7 +397,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
                                       crossAxisAlignment: CrossAxisAlignment.end,
                                       children: [
                                         Text(
-                                          player['role'] ?? '',
+                                          _getRoleDisplayName(player['role'] ?? ''),
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             color: isUndercover ? Colors.red : Colors.green,
@@ -635,7 +669,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                       const Text('Who is the Undercover?', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                       const Text('Who is the Sigma?', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
                        Container(
                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                          decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(8)),
@@ -756,13 +790,13 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
         Expanded(
           flex: 1,
           child: Container(
-            color: Colors.black12,
+            color: AppTheme.background,
             child: Column(
               children: [
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-                  color: Colors.black26,
+                  color: AppTheme.surface,
                   child: const Text('MISSION LOG', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white54)),
                 ),
                 Expanded(child: _buildChatHistory(provider)),

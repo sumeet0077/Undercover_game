@@ -77,7 +77,7 @@ const Lobby = ({ room, socket, myId }) => {
 
                     <div className="mb-4">
                         <div className="flex justify-between mb-2">
-                            <span className="text-gray-300">Undercovers</span>
+                            <span className="text-gray-300">Sigmas</span>
                             <span className="font-bold text-primary">{ucCount}</span>
                         </div>
                         <input
@@ -92,7 +92,7 @@ const Lobby = ({ room, socket, myId }) => {
 
                     <div className="mb-4">
                         <div className="flex justify-between mb-2">
-                            <span className="text-gray-300">Mr. White</span>
+                            <span className="text-gray-300">Glitches</span>
                             <span className="font-bold text-secondary">{mrWhiteCount}</span>
                         </div>
                         <input
@@ -114,7 +114,7 @@ const Lobby = ({ room, socket, myId }) => {
                             {showRole ? 'VISIBLE' : 'HIDDEN'}
                         </button>
                     </div>
-                    <p className="text-xs text-gray-400 mb-4">If hidden, players only see their word (except Mr. White).</p>
+                    <p className="text-xs text-gray-400 mb-4">If hidden, players only see their word (except The Glitch).</p>
                 </div>
             )}
 
