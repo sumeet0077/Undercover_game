@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:flutter_tts/flutter_tts.dart'; // NEW
+import 'package:flutter_tts/flutter_tts.dart'; // Deprecated? No, needed for type? No service handles it.
+// Actually we remove this import if not used elsewhere, but let's keep it clean.
+import '../services/tts_service.dart'; // NEW
 import '../providers/game_provider.dart';
 import '../core/theme.dart';
 import 'landing_screen.dart';
@@ -22,14 +24,12 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
   final AudioPlayer _audioPlayer = AudioPlayer();
   final ScrollController _scrollController = ScrollController();
   late AnimationController _animationController;
-  final FlutterTts _flutterTts = FlutterTts(); // NEW
   bool _hasPlayedGameOverSound = false;
   bool _showReactions = false;
   bool _showSecretWord = false; 
   // TTS State
   int _lastAnnouncedRound = 0;
-  bool _ttsInitialized = false;
-  Future<void>? _ttsInitFuture;
+  // _ttsInitialized, _flutterTts etc removed
 
   @override
   void initState() {
@@ -39,7 +39,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _ttsInitFuture = _initTts();
+    // Init global service (fire and forget warmup)
+    TtsService.instance.init();
     // Add listener for round changes
     // We defer to didChangeDependencies or a post-frame callback to attach listener safely if provider is up
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -50,31 +51,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
     });
   }
 
-  Future<void> _initTts() async {
-    try {
-      await _flutterTts.setLanguage("en-US");
-      await _flutterTts.setSpeechRate(0.5);
-      await _flutterTts.setVolume(1.0);
-      await _flutterTts.setPitch(1.0);
-      await _flutterTts.awaitSpeakCompletion(true); // Ensure we wait for speech to finish logic internally
-
-      // Attempt to set a female voice (heuristic)
-      var voices = await _flutterTts.getVoices;
-      if (voices != null) {
-         final voice = voices.firstWhere((v) => 
-            v['name'].toString().toLowerCase().contains('female') || 
-            v['name'].toString().toLowerCase().contains('samantha') ||
-            v['name'].toString().toLowerCase().contains('en-us-x-sfg')
-         , orElse: () => null);
-         if (voice != null) {
-           await _flutterTts.setVoice({"name": voice["name"], "locale": voice["locale"]});
-         }
-      }
-      _ttsInitialized = true;
-    } catch (e) {
-      print("TTS setup error: $e");
-    }
-  }
+  // _initTts removed - logic moved to service
 
   void _checkRoundChange() {
     if (!mounted) return;
@@ -93,19 +70,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
     }
   }
 
-  void _speakRound(int round) async {
-    // Wait for init if not ready
-    if (!_ttsInitialized && _ttsInitFuture != null) {
-      await _ttsInitFuture;
-    }
-    
-    // Check again after await
-    if (!_ttsInitialized) return;
-
-    // Do NOT call stop() here unless necessary, as it can cut off the very start 
-    // of the speech if called in rapid succession on some engines.
-    // FlutterTTS usually handles queue/flush.
-    await _flutterTts.speak("Round $round");
+  void _speakRound(int round) {
+    TtsService.instance.speak("Round $round");
   }
 
   @override
@@ -115,7 +81,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
     _animationController.dispose();
     _descController.dispose();
     _scrollController.dispose();
-    _flutterTts.stop();
+    TtsService.instance.stop(); // Stop any pending speech
     // Remove listener
     // Actually Provider removes listeners on dispose automatically? No.
     // But we don't have reference to provider easily here without context?
