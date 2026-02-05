@@ -175,7 +175,16 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
       _hasPlayedGameOverSound = false;
     }
 
-    if (room == null || room.status == 'LOBBY') {
+    // Routing Logic:
+    // 1. If Room is NULL -> Landing
+    // 2. If Room Status is LOBBY -> Lobby
+    // 3. If Room Status is GAMEOVER BUT I have returned to lobby -> Lobby
+    
+    // Find me safely
+    final me = room?.players.firstWhere((p) => p.id == gameProvider.socketId, orElse: () => room!.players.first);
+    final inLobby = me?.inLobby ?? false;
+
+    if (room == null || room.status == 'LOBBY' || (room.status == 'GAMEOVER' && inLobby)) {
        WidgetsBinding.instance.addPostFrameCallback((_) {
          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => 
             room == null ? const LandingScreen() : const LobbyScreen()));

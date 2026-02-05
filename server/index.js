@@ -91,7 +91,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('return_to_lobby', ({ roomId }) => {
-        gameManager.returnToLobby(roomId);
+        gameManager.returnToLobby(roomId, socket.id);
     });
 
     socket.on('reshuffle_words', ({ roomId }) => {

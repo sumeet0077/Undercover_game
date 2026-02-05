@@ -43,7 +43,7 @@ class GameManager {
         roomId = roomId.toUpperCase(); // Case insensitive
         const room = this.rooms.get(roomId);
         if (!room) return { error: "Room not found" };
-        if (room.status !== 'LOBBY') return { error: "Game already started" };
+        if (room.status !== 'LOBBY' && room.status !== 'GAMEOVER') return { error: "Game already started" };
         if (room.players.find(p => p.name === playerName)) return { error: "Name taken" };
 
         const player = {
@@ -53,6 +53,7 @@ class GameManager {
             role: null,
             word: null,
             isAlive: true,
+            inLobby: true, // New joiners always in lobby view
             avatar: Math.floor(Math.random() * 10)
         };
 
@@ -128,6 +129,7 @@ class GameManager {
             if (p.role === 'CIVILIAN') p.word = civilianWord;
             else if (p.role === 'UNDERCOVER') p.word = undercoverWord;
             else p.word = null; // Mr. White
+            p.inLobby = false; // Reset for everyone
         });
 
         // Randomize turn order for the game
@@ -407,30 +409,43 @@ class GameManager {
         return null;
     }
 
-    returnToLobby(roomId) {
+    returnToLobby(roomId, playerId) {
         const room = this.rooms.get(roomId);
         if (!room) return;
 
-        room.status = 'LOBBY';
-        room.phase = null;
-        room.currentTurnIndex = 0;
-        room.descriptions = [];
-        room.votes = {};
-        room.wordPair = null;
-        room.round = 1;
-        room.winners = null;
-        room.skippedCount = 0;
-        room.previousRounds = [];
-        room.turnOrder = [];
-        room.config = null; // Optional: Reset config or keep it. Let's keep it? Actually safer to reset or let UI defaults take over. Let's reset to force Host to see defaults or re-configure.
+        // 1. Mark THIS player as in lobby
+        const player = room.players.find(p => p.id === playerId);
+        if (player) {
+            player.inLobby = true;
+            player.role = null;
+            player.word = null;
+            player.isAlive = true;
+        }
 
-        // Reset Players
-        room.players.forEach(p => {
-            p.role = null;
-            p.word = null;
-            p.isAlive = true;
-            p.avatar = Math.floor(Math.random() * 10); // New avatar for fun? Or keep same.
-        });
+        // 2. Check if EVERYONE is in lobby (or just reset if everyone left?)
+        // If all players have inLobby=true, we can reset the room status fully to LOBBY
+        const allInLobby = room.players.every(p => p.inLobby);
+
+        if (allInLobby) {
+            // Full Reset
+            room.status = 'LOBBY';
+            room.phase = null;
+            room.currentTurnIndex = 0;
+            room.descriptions = [];
+            room.votes = {};
+            room.wordPair = null;
+            room.round = 1;
+            room.winners = null;
+            room.skippedCount = 0;
+            room.previousRounds = [];
+            room.turnOrder = [];
+
+            // Clean flags
+            room.players.forEach(p => {
+                p.inLobby = false; // Reset flag for next game
+                p.avatar = Math.floor(Math.random() * 10);
+            });
+        }
 
         // Notify all
         this.io.to(roomId).emit('room_update', room);
