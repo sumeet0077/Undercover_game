@@ -231,14 +231,15 @@ function App() {
               </div>
             )}
 
-            <div className="bg-background p-4 rounded-3xl">
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-[2.5rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
               <img
                 src="/logo_landing.png"
                 alt="SigmaBluff Logo"
-                className="w-64 md:w-72 h-auto drop-shadow-2xl hover:scale-105 transition-transform duration-300"
+                className="relative w-64 md:w-72 h-auto rounded-[2rem] shadow-2xl hover:scale-105 transition-transform duration-300"
               />
             </div>
-            <div className="h-4"></div>
+            <div className="h-8"></div>
             <div className="space-y-4 bg-card p-8 rounded-2xl shadow-2xl border border-gray-700">
               <input
                 type="text"
