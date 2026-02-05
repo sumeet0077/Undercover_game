@@ -157,7 +157,15 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('ROUND ${room.round}', style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold)),
-                      Text('${room.players.where((p) => p.isAlive).length} Agents Alive', style: TextStyle(color: Colors.white70)),
+                      // 3. DISPLAY PLAYER NAME
+                      Row(
+                        children: [
+                          const Icon(Icons.person, size: 16, color: Colors.white54),
+                          const SizedBox(width: 4),
+                          Text(me.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      Text('${room.players.where((p) => p.isAlive).length} Alive', style: const TextStyle(color: Colors.white70)),
                     ],
                   ),
                 ),
@@ -340,6 +348,94 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     );
   }
 
+  bool _showSecretWord = false; // 2. Tap to reveal state
+
+  Widget _buildChatHistory(GameProvider provider) {
+    final room = provider.room!;
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      children: [
+        // Previous Rounds History
+        ...room.previousRounds.asMap().entries.map((entry) {
+          final roundIdx = entry.key;
+          final roundDescs = entry.value;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    const Expanded(child: Divider(color: Colors.white24)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('ROUND ${roundIdx + 1}', style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
+                    ),
+                    const Expanded(child: Divider(color: Colors.white24)),
+                  ],
+                ),
+              ),
+              ...roundDescs.map((desc) => Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.surface.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Text('${desc['name']}:', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white54)),
+                    const SizedBox(width: 8),
+                    Text('${desc['text']}', style: const TextStyle(color: Colors.white54)),
+                  ],
+                ),
+              )),
+            ],
+          );
+        }),
+        
+        // Current Round Separator
+        if (room.previousRounds.isNotEmpty && room.descriptions.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Expanded(child: Divider(color: AppTheme.primary.withValues(alpha: 0.5))),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('CURRENT ROUND', style: TextStyle(color: AppTheme.primary, fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
+                Expanded(child: Divider(color: AppTheme.primary.withValues(alpha: 0.5))),
+              ],
+            ),
+          ),
+        
+        // Current Round Descriptions
+        if (room.descriptions.isEmpty && room.previousRounds.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(32.0),
+            child: Center(child: Text('Mission log is empty...', style: TextStyle(color: Colors.white30, fontStyle: FontStyle.italic))),
+          ),
+
+        ...room.descriptions.map((desc) => Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+               Text('${desc['name']}:', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary)),
+               const SizedBox(width: 8),
+               Text('${desc['text']}', style: const TextStyle(color: Colors.white)),
+            ],
+          ),
+        ).animate().fadeIn().slideX(begin: 0.1)),
+      ],
+    );
+  }
+
   Widget _buildDescriptionPhase(BuildContext context, GameProvider provider) {
     final room = provider.room!;
     final currentPlayer = room.currentPlayer;
@@ -347,105 +443,46 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
 
     return Column(
       children: [
-        // Role Card (Mini)
-        Container(
-          width: double.infinity,
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [AppTheme.surface, AppTheme.background]),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white12),
-          ),
-          child: Column(
-            children: [
-              Text('YOUR WORD', style: TextStyle(color: AppTheme.textMuted, fontSize: 10, letterSpacing: 1.5)),
-              const SizedBox(height: 4),
-              Text(provider.myWord ?? '???', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
-            ],
+        // Role Card (Mini) - 2. TAP TO REVEAL IMPLEMENTATION
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              _showSecretWord = !_showSecretWord;
+            });
+          },
+          child: Container(
+            width: double.infinity,
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [AppTheme.surface, AppTheme.background]),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _showSecretWord ? AppTheme.primary.withValues(alpha: 0.5) : Colors.white12),
+            ),
+            child: Column(
+              children: [
+                Text('YOUR SECRET WORD (TAP)', style: TextStyle(color: AppTheme.textMuted, fontSize: 10, letterSpacing: 1.5)),
+                const SizedBox(height: 4),
+                // Tap to reveal logic
+                Text(
+                  _showSecretWord ? (provider.myWord ?? '???') : 'TAP TO REVEAL',
+                  style: TextStyle(
+                    fontSize: 24, 
+                    fontWeight: FontWeight.bold, 
+                    color: _showSecretWord ? Colors.white : Colors.white24,
+                    letterSpacing: _showSecretWord ? 1.0 : 4.0 // Spaced out for hidden
+                  )
+                ),
+              ],
+            ),
           ),
         ),
 
         const Divider(color: Colors.white10),
 
-         // History + Current Descriptions
+         // History + Current Descriptions (Reusable Widget)
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // Previous Rounds History
-              ...room.previousRounds.asMap().entries.map((entry) {
-                final roundIdx = entry.key;
-                final roundDescs = entry.value;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Row(
-                        children: [
-                          const Expanded(child: Divider(color: Colors.white24)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text('ROUND ${roundIdx + 1}', style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
-                          ),
-                          const Expanded(child: Divider(color: Colors.white24)),
-                        ],
-                      ),
-                    ),
-                    ...roundDescs.map((desc) => Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppTheme.surface.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Text('${desc['name']}:', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white54)),
-                          const SizedBox(width: 8),
-                          Text('${desc['text']}', style: const TextStyle(color: Colors.white54)),
-                        ],
-                      ),
-                    )),
-                  ],
-                );
-              }),
-              
-              // Current Round Separator
-              if (room.previousRounds.isNotEmpty && room.descriptions.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    children: [
-                      Expanded(child: Divider(color: AppTheme.primary.withValues(alpha: 0.5))),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text('CURRENT ROUND', style: TextStyle(color: AppTheme.primary, fontSize: 10, fontWeight: FontWeight.bold)),
-                      ),
-                      Expanded(child: Divider(color: AppTheme.primary.withValues(alpha: 0.5))),
-                    ],
-                  ),
-                ),
-              
-              // Current Round Descriptions
-              ...room.descriptions.map((desc) => Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                     Text('${desc['name']}:', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary)),
-                     const SizedBox(width: 8),
-                     Text('${desc['text']}', style: const TextStyle(color: Colors.white)),
-                  ],
-                ),
-              ).animate().fadeIn().slideX(begin: 0.1)),
-            ],
-          ),
+          child: _buildChatHistory(provider),
         ),
 
         // Turn Indicator / Input
@@ -506,6 +543,24 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
 
     return Column(
       children: [
+        // 1. CHAT HISTORY (Scaled down)
+        // Ensure users can see what people said before voting
+        Container(
+          height: 150, // Fixed height for history in voting view
+          color: Colors.black12,
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                color: Colors.black26,
+                child: const Text('MISSION LOG', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white54)),
+              ),
+              Expanded(child: _buildChatHistory(provider)),
+            ],
+          ),
+        ),
+        
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
@@ -685,3 +740,4 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     );
   }
 }
+
