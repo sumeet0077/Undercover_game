@@ -52,15 +52,6 @@ class Player {
     String? avatar,
     String? role,
     String? word,
-  }) {
-    return Player(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      isHost: isHost ?? this.isHost,
-      isAlive: isAlive ?? this.isAlive,
-      avatar: avatar ?? this.avatar,
-      role: role ?? this.role,
-    String? word,
     bool? inLobby,
   }) {
     return Player(

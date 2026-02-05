@@ -214,7 +214,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
         content = const Center(child: Text('Waiting...'));
     }
 
-    final me = room.players.firstWhere((p) => p.id == gameProvider.socketId, orElse: () => room.players.first);
+    // Reuse 'me' from above, but ensure non-null since we passed the room check
+    final playerMe = room.players.firstWhere((p) => p.id == gameProvider.socketId, orElse: () => room.players.first);
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -225,7 +226,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
         scrolledUnderElevation: 0,
         elevation: 0,
         centerTitle: true,
-        leading: me.isHost ? IconButton(
+        leading: playerMe.isHost ? IconButton(
           icon: const Icon(Icons.close, color: Colors.red),
           onPressed: () {
             showDialog(
@@ -293,7 +294,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
                         children: [
                           const Icon(Icons.person, size: 16, color: Colors.white54),
                           const SizedBox(width: 4),
-                          Text(me.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          Text(me?.name ?? 'Unknown', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                         ],
                       ),
                       Text('${room.players.where((p) => p.isAlive).length} Alive', style: const TextStyle(color: Colors.white70)),
@@ -302,7 +303,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
                 ),
                 
                 // Re-roll button for Host in Description Phase
-                 if (room.phase == 'DESCRIPTION' && me.isHost)
+                 if (room.phase == 'DESCRIPTION' && (me?.isHost ?? false))
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Align(
