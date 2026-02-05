@@ -5,9 +5,12 @@ import GameRoom from './components/GameRoom';
 import ErrorBoundary from './components/ErrorBoundary';
 
 const socket = io(import.meta.env.VITE_SERVER_URL || 'http://localhost:3000', {
-  transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
-  reconnectionAttempts: 5,
-  timeout: 60000, // Increased to 60s for Render cold starts
+  transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionAttempts: Infinity, // Keep trying
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  timeout: 20000,
 });
 
 function App() {
@@ -19,6 +22,7 @@ function App() {
   const [error, setError] = useState('');
   const [isConnected, setIsConnected] = useState(socket.connected);
   const [connectionError, setConnectionError] = useState('');
+  const [latency, setLatency] = useState(0);
 
   useEffect(() => {
     // Immediate check
@@ -117,7 +121,40 @@ function App() {
       setGameState('LANDING');
     });
 
+    socket.on('player_joined', ({ player }) => {
+      setRoom(prev => {
+        if (!prev) return null; // Should not happen if in lobby
+        // Check for duplicate
+        if (prev.players.some(p => p.id === player.id)) return prev;
+        return { ...prev, players: [...prev.players, player] };
+      });
+    });
+
+    // ATOMIC SYNC
+    socket.on('full_sync', ({ room }) => {
+      // One update to rule them all
+      setRoom(room);
+      setGameState(current => {
+        if (room.status === 'PLAYING') return 'PLAYING';
+        if (room.status === 'LOBBY') return 'LOBBY';
+        return current;
+      });
+    });
+
+    // HEARTBEAT
+    // HEARTBEAT & LATENCY
+    // Only ping if tab is visible to prevent throttling/battery drain
+    const pingInterval = setInterval(() => {
+      if (socket.connected && document.visibilityState === 'visible') {
+        const start = Date.now();
+        socket.volatile.emit('ping', () => {
+          setLatency(Date.now() - start);
+        });
+      }
+    }, 5000);
+
     return () => {
+      clearInterval(pingInterval);
       socket.off('connect');
       socket.off('disconnect');
       socket.off('rejoin_failed'); // Cleanup
@@ -130,6 +167,7 @@ function App() {
       socket.off('room_destroyed');
       socket.off('update_votes'); // Clean up
       socket.off('left_room_success');
+      socket.off('full_sync'); // New
     };
   }, [playerName]);
 
@@ -180,7 +218,7 @@ function App() {
             {/* ... LANDING CONTENT ... */}
             {/* Connection Status Badge */}
             <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold font-mono transition-colors ${isConnected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-              {isConnected ? '● CONNECTED' : '○ DISCONNECTED'}
+              {isConnected ? `● CONNECTED (${latency}ms)` : '○ DISCONNECTED'}
               {!isConnected && (
                 <span className="text-[10px] opacity-70">
                   ({import.meta.env.VITE_SERVER_URL || 'localhost:3000'})
@@ -195,7 +233,7 @@ function App() {
 
             <img
               src="/logo.png"
-              alt="Undercover Logo"
+              alt="SigmaBluff Logo"
               className="w-48 md:w-64 h-auto drop-shadow-2xl mb-8 hover:scale-105 transition-transform duration-300"
             />
             <div className="space-y-4 bg-card p-8 rounded-2xl shadow-2xl border border-gray-700">

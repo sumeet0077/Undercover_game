@@ -38,6 +38,7 @@ io.on('connection', (socket) => {
         } else {
             socket.join(roomId);
             io.to(roomId).emit('room_update', result.room);
+            io.to(roomId).emit('player_joined', { player: result.room.players[result.room.players.length - 1] }); // Instant feedback
             io.to(roomId).emit('room_created', { roomId, room: result.room }); // To specific user
         }
     });
@@ -109,19 +110,19 @@ io.on('connection', (socket) => {
     // --- NEW HANDLERS ---
 
     socket.on('request_sync', ({ roomId }) => {
-        // Reuse rejoin logic's refresh part basically
         const room = gameManager.rooms.get(roomId);
-        if (room && (room.status === 'PLAYING' || room.status === 'GAMEOVER')) {
-            socket.emit('game_started', {
-                currentTurn: room.players[room.currentTurnIndex]?.id,
-                phase: room.phase
-            });
-            socket.emit('update_descriptions', room.descriptions);
-            socket.emit('update_votes', {
-                count: Object.keys(room.votes).length,
-                total: room.players.filter(p => p.isAlive).length
+        if (room) {
+            // OPTIMIZATION: Send ONE comprehensive payload for sync
+            // This prevents UI flicker from multiple partial updates
+            socket.emit('full_sync', {
+                room,
+                timestamp: Date.now()
             });
         }
+    });
+
+    socket.on('ping', (cb) => {
+        if (typeof cb === 'function') cb();
     });
 
     socket.on('leave_room', ({ roomId }) => {

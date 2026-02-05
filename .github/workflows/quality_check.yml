@@ -1,0 +1,50 @@
+name: Quality Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  audit-backend:
+    name: Audit Server (Node.js)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Audit Dependencies
+        working-directory: ./server
+        run: npm audit
+
+  audit-frontend:
+    name: Audit Client (React)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Audit Dependencies
+        working-directory: ./client
+        run: npm audit
+
+  analyze-mobile:
+    name: Analyze Mobile (Flutter)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - name: Install Dependencies
+        working-directory: ./mobile
+        run: flutter pub get
+      - name: Analyze Code
+        working-directory: ./mobile
+        run: flutter analyze

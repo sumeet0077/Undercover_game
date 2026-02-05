@@ -146,7 +146,7 @@ class GameManager {
             phase: room.phase,
             currentTurn: room.players[room.turnOrder[0]].id
         });
-        this.io.to(roomId).emit('room_update', room); // SYNC APP STATE
+        this.io.to(roomId).emit('full_sync', { room }); // ATOMIC SYNC: Replaces room_update
 
         // Send individual info
         players.forEach(p => {
@@ -248,6 +248,7 @@ class GameManager {
         } else {
             room.currentTurnIndex = room.turnOrder[0]; // Update for state sync
             this.io.to(roomId).emit('next_turn', { currentTurn: room.players[room.currentTurnIndex].id });
+            this.io.to(roomId).emit('full_sync', { room }); // ATOMIC SYNC: Ensure mobile gets the update
         }
 
         this.io.to(roomId).emit('update_descriptions', room.descriptions);
@@ -276,6 +277,7 @@ class GameManager {
             total: aliveCount,
             votes: room.votes // Send who has voted
         });
+        this.io.to(roomId).emit('full_sync', { room }); // ATOMIC SYNC
         this.io.to(voterId).emit('vote_confirmed', { targetId }); // Feedback to user
 
         if (votesCast >= aliveCount) {
@@ -360,7 +362,7 @@ class GameManager {
 
             // Delay slightly for UI to show voting result
             setTimeout(() => {
-                this.io.to(roomId).emit('room_update', room); // SYNC HISTORY & STATE
+                this.io.to(roomId).emit('full_sync', { room }); // SYNC HISTORY & STATE
                 this.io.to(roomId).emit('new_round', {
                     phase: 'DESCRIPTION',
                     currentTurn: room.players[room.currentTurnIndex].id
