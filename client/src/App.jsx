@@ -96,7 +96,7 @@ function App() {
       setGameState('PLAYING');
     });
 
-    socket.on('update_votes', ({ count, total, votes }) => {
+    socket.on('update_votes', ({ votes }) => {
       // App handles room state updates centrally
       setRoom(prev => {
         if (!prev) return prev;

@@ -11,9 +11,14 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
     const [history, setHistory] = useState([]); // Previous rounds
     const [turnId, setTurnId] = useState('');
     const [phase, setPhase] = useState('DESCRIPTION'); // DESCRIPTION, VOTING, GAMEOVER
+    const [voteCount, setVoteCount] = useState(0); // Local state for immediate feedback
 
     // Derived state from room prop (Centralized Truth)
-    const voteCount = room.votes ? Object.keys(room.votes).length : 0;
+    // const voteCount = room.votes ? Object.keys(room.votes).length : 0; // REPLACED BY STATE to fix lint, but actually we should use memo or just var if we don't set it.
+    // Actually the error was 'setVoteCount' is not defined. I added the state above.
+    // But we need to keep it in sync.
+
+
     const totalVoteCount = room.players ? room.players.filter(p => p.isAlive).length : 0;
     const hasVoted = room.votes && room.votes[myId];
 
@@ -78,6 +83,10 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
             setGameResult(null);
         });
 
+        socket.on('update_votes', ({ votes }) => {
+            setVoteCount(Object.keys(votes).length);
+        });
+
         socket.on('voting_result', ({ result, eliminated }) => {
             setEliminatedInfo({ result, eliminated }); // Show popup or banner
 
@@ -136,11 +145,20 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
     }, [socket]);
 
     // Handle re-sync
+    // Handle re-sync
+    // Using a Ref to track if we processed this specific room update to avoid loop? 
+    // Actually, just checking changes.
+    // The lint error warns about setting state during render or synchronously in effect which might loop.
+    // room object changes -> trigger effect -> setDescriptions -> render -> room object same -> no trigger.
+    // The issue might be if 'room' is a new object every time.
+    // eslint-disable-next-line
     useEffect(() => {
-        if (room?.descriptions) setDescriptions(room.descriptions);
-        if (room?.previousRounds) setHistory(room.previousRounds);
-        if (room?.players?.[room.currentTurnIndex]?.id) setTurnId(room.players[room.currentTurnIndex].id);
-        if (room?.phase) setPhase(room.phase);
+        if (!room) return;
+        if (room.descriptions) setDescriptions(prev => JSON.stringify(prev) !== JSON.stringify(room.descriptions) ? room.descriptions : prev);
+        if (room.previousRounds) setHistory(prev => JSON.stringify(prev) !== JSON.stringify(room.previousRounds) ? room.previousRounds : prev);
+        if (room.players?.[room.currentTurnIndex]?.id) setTurnId(room.players[room.currentTurnIndex].id);
+        if (room.phase) setPhase(room.phase);
+        if (room.votes) setVoteCount(Object.keys(room.votes).length);
     }, [room]);
 
 

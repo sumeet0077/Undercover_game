@@ -42,7 +42,7 @@ export const playWinSound = (winner) => {
     } else {
         // UNDERCOVERS / MR WHITE: Dark, suspenseful chord
         // Dissonant Cluster (C#3, G3, C4)
-        [138.59, 196.00, 261.63].forEach((freq, i) => {
+        [138.59, 196.00, 261.63].forEach((freq) => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
 
