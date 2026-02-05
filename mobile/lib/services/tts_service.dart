@@ -14,14 +14,27 @@ class TtsService {
 
   final FlutterTts _flutterTts = FlutterTts();
   bool _isInitialized = false;
+  Future<void>? _initFuture;
+  
   bool _isSpeaking = false;
   final List<String> _queue = [];
   Timer? _retryTimer;
 
-  /// Initialize TTS engine and "warm up" on Android
-  Future<void> init() async {
-    if (_isInitialized) return;
+  // Deduplication state
+  String? _lastSpokenText;
+  DateTime? _lastSpokenTime;
 
+  /// Initialize TTS engine and "warm up" on Android
+  Future<void> init() {
+    if (_isInitialized) return Future.value();
+    // Return existing future if already initializing to prevent duplicate calls
+    if (_initFuture != null) return _initFuture!;
+
+    _initFuture = _initCore();
+    return _initFuture!;
+  }
+
+  Future<void> _initCore() async {
     try {
       print("[TTS] Initializing...");
       
@@ -85,6 +98,8 @@ class TtsService {
 
     } catch (e) {
       print("[TTS] Init failed: $e");
+      // Reset future so we can try again later if needed
+      _initFuture = null;
     }
   }
 
@@ -92,6 +107,19 @@ class TtsService {
   Future<void> speak(String text) async {
     if (text.trim().isEmpty) return;
     
+    // Deduplication Logic: Ignore if same text requested within last 2 seconds
+    final now = DateTime.now();
+    if (_lastSpokenText == text && _lastSpokenTime != null) {
+       final diff = now.difference(_lastSpokenTime!).inMilliseconds;
+       if (diff < 2000) {
+         print("[TTS] Ignored duplicate speech request: $text");
+         return;
+       }
+    }
+    
+    _lastSpokenText = text;
+    _lastSpokenTime = now;
+
     // If not initialized, try to init (lazy loading fallback)
     if (!_isInitialized) await init();
 
