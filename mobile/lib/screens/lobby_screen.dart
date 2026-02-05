@@ -18,6 +18,7 @@ class _LobbyScreenState extends State<LobbyScreen> with WidgetsBindingObserver {
   int _ucCount = 1;
   int _mrWhiteCount = 0;
   bool _showRole = false;
+  bool _isNavigating = false; // Lock to prevent multi-trigger navigation
 
   @override
   void initState() {
@@ -47,15 +48,21 @@ class _LobbyScreenState extends State<LobbyScreen> with WidgetsBindingObserver {
     // CRITICAL FIX: Do NOT redirect if status is GAMEOVER. 
     // If I am in LobbyScreen, it means I have returned to lobby (or joined fresh).
     // I should only be forced to GameScreen if the game is ACTUALLY PLAYING.
-    if (room != null && room.status == 'PLAYING') {
+    // ADDED GUARD: _isNavigating prevents multiple schedules in one frame/rapid frames.
+    if (!_isNavigating && room != null && room.status == 'PLAYING') {
+      _isNavigating = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Double check mounted before navigating
+        if (!mounted) return;
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const GameScreen()));
       });
     }
 
     // Back to Landing if room destroyed or left
-    if (room == null) {
+    if (!_isNavigating && room == null) {
+      _isNavigating = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LandingScreen()));
       });
       return const SizedBox(); // Empty while navigating
