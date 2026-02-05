@@ -81,10 +81,31 @@ class _LobbyScreenState extends State<LobbyScreen> with WidgetsBindingObserver {
                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Syncing data...'), duration: Duration(seconds: 1)));
             },
           ),
+          if (isHost)
+            IconButton(
+              icon: const Icon(Icons.delete_forever, color: Colors.red),
+              tooltip: 'End Room',
+              onPressed: () {
+                 showDialog(
+                  context: context, 
+                  builder: (c) => AlertDialog(
+                    title: const Text('End Room?', style: TextStyle(color: Colors.black)),
+                    content: const Text('This will disband the lobby for everyone.', style: TextStyle(color: Colors.black)),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel')),
+                      TextButton(onPressed: () {
+                        Navigator.pop(c);
+                        gameProvider.endGame();
+                      }, child: const Text('END ROOM', style: TextStyle(color: Colors.red))),
+                    ],
+                  )
+                );
+              },
+            ),
           IconButton(
             key: const Key('exit_lobby_button'),
-            icon: const Icon(Icons.exit_to_app, color: Colors.red),
-
+            icon: const Icon(Icons.exit_to_app, color: Colors.white70), // Changed from Red to White if not host, or just standard exit
+            tooltip: 'Leave Lobby',
             onPressed: () {
               showDialog(
                 context: context, 
