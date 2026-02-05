@@ -80,12 +80,10 @@ function App() {
         if (roomData.status === 'LOBBY') return 'LOBBY';
         // GAMEOVER logic: If I have returned, show lobby. Else show game.
         if (roomData.status === 'GAMEOVER') {
-          // We need myId here, but it's in closure. socket.id is reliable?
-          // Or use 'myId' state if available in closure?
-          // Let's use socket.id directly as fallback or check players list
-          const me = roomData.players.find(p => p.id === socket.id);
+          // Robust match: socket.id or playerName
+          const me = roomData.players.find(p => p.id === socket.id || p.name === playerName);
           if (me && me.inLobby) return 'LOBBY';
-          return 'PLAYING'; // Consistently map GAMEOVER to React's PLAYING view (GameRoom handles Phase)
+          return 'PLAYING'; // Consistently map GAMEOVER to React's PLAYING view
         }
         if (current === 'LANDING') return 'LOBBY';
         return current;
@@ -147,7 +145,9 @@ function App() {
         if (room.status === 'PLAYING') return 'PLAYING';
         if (room.status === 'LOBBY') return 'LOBBY';
         if (room.status === 'GAMEOVER') {
-          const me = room.players.find(p => p.id === socket.id);
+          // Use socket.id OR playerName to find self.
+          // socket is module-level, so socket.id is current. playerName is from closure (dep array).
+          const me = room.players.find(p => p.id === socket.id || p.name === playerName);
           if (me && me.inLobby) return 'LOBBY';
           return 'PLAYING';
         }

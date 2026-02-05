@@ -44,7 +44,10 @@ class _LobbyScreenState extends State<LobbyScreen> with WidgetsBindingObserver {
     final room = gameProvider.room;
 
     // Navigation to GameScreen if game started
-    if (room != null && (room.status == 'PLAYING' || room.status == 'GAMEOVER')) {
+    // CRITICAL FIX: Do NOT redirect if status is GAMEOVER. 
+    // If I am in LobbyScreen, it means I have returned to lobby (or joined fresh).
+    // I should only be forced to GameScreen if the game is ACTUALLY PLAYING.
+    if (room != null && room.status == 'PLAYING') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const GameScreen()));
       });
