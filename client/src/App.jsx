@@ -232,7 +232,7 @@ function App() {
             )}
 
             <img
-              src="/logo.png"
+              src="/logo_landing.png"
               alt="SigmaBluff Logo"
               className="w-48 md:w-64 h-auto drop-shadow-2xl mb-8 hover:scale-105 transition-transform duration-300"
             />
