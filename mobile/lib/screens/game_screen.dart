@@ -622,137 +622,154 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
 
     return Column(
       children: [
-        // 1. CHAT HISTORY (Scaled down)
-        // Ensure users can see what people said before voting
-        Container(
-          height: 150, // Fixed height for history in voting view
-          color: Colors.black12,
-          child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-                color: Colors.black26,
-                child: const Text('MISSION LOG', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white54)),
-              ),
-              Expanded(child: _buildChatHistory(provider)),
-            ],
-          ),
-        ),
-        
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-               const Text('Who is the Undercover?', style: TextStyle(color: Colors.white70)),
-               Container(
-                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                 decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(8)),
-                 child: Text(
-                   '${room.votes.length}/${room.players.where((p) => p.isAlive).length} Voted',
-                   style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 12),
-                 ),
-               )
-            ],
-          ), 
-        ),
+        // TOP HALF: VOTING GRID (Avatars) - 50%
         Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.all(16),
-             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.0,
-              ),
-            itemCount: room.players.length,
-            itemBuilder: (context, index) {
-              final player = room.players[index];
-              // final isTarget = player.isAlive; // Unused
-              final voteCount = room.votes.values.where((v) => v == player.id).length;
-              final isSelected = hasVoted && room.votes[provider.socketId] == player.id;
-              
-              if (!player.isAlive) {
-                 return Opacity(
-                   opacity: 0.5,
-                   child: Container(
-                      decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)),
-                      alignment: Alignment.center,
-                      child: Column(children: [
-                        Text(player.avatar, style: const TextStyle(fontSize: 40)),
-                        Text(player.name, style: const TextStyle(decoration: TextDecoration.lineThrough)),
-                        const Text('ELIMINATED', style: TextStyle(color: Colors.red, fontSize: 10)),
-                      ]),
-                   ),
-                 );
-              }
+          flex: 1,
+          child: Container(
+            color: AppTheme.background,
+            child: Column(
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                       const Text('Who is the Undercover?', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                       Container(
+                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                         decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(8)),
+                         child: Text(
+                           '${room.votes.length}/${room.players.where((p) => p.isAlive).length} Voted',
+                           style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 12),
+                         ),
+                       )
+                    ],
+                  ), 
+                ),
+                
+                // Grid
+                Expanded(
+                  child: GridView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 1.0,
+                      ),
+                    itemCount: room.players.length,
+                    itemBuilder: (context, index) {
+                      final player = room.players[index];
+                      final voteCount = room.votes.values.where((v) => v == player.id).length;
+                      final isSelected = hasVoted && room.votes[provider.socketId] == player.id;
+                      
+                      if (!player.isAlive) {
+                         return Opacity(
+                           opacity: 0.5,
+                           child: Container(
+                              decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)),
+                              alignment: Alignment.center,
+                              child: Column(children: [
+                                Text(player.avatar, style: const TextStyle(fontSize: 40)),
+                                Text(player.name, style: const TextStyle(decoration: TextDecoration.lineThrough)),
+                                const Text('ELIMINATED', style: TextStyle(color: Colors.red, fontSize: 10)),
+                              ]),
+                           ),
+                         );
+                      }
 
-              final canVote = !hasVoted && me.isAlive && player.id != provider.socketId;
+                      final canVote = !hasVoted && me.isAlive && player.id != provider.socketId;
 
-              return GestureDetector(
-                onTap: canVote ? () => provider.submitVote(player.id) : null,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppTheme.primary.withValues(alpha: 0.2) : AppTheme.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected ? AppTheme.primary : Colors.transparent, width: 2
+                      return GestureDetector(
+                        onTap: canVote ? () => provider.submitVote(player.id) : null,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppTheme.primary.withValues(alpha: 0.2) : AppTheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected ? AppTheme.primary : Colors.transparent, width: 2
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Badge(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                label: Text('$voteCount'),
+                                isLabelVisible: voteCount > 0,
+                                backgroundColor: AppTheme.secondary,
+                                child: Text(player.avatar, style: const TextStyle(fontSize: 40)),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(player.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              if (room.votes.containsKey(player.id))
+                                Container(
+                                  margin: const EdgeInsets.only(top: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text('✓ VOTED', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                                )
+                            ],
+                          ),
+                        ).animate().scale(duration: 200.ms),
+                      );
+                    },
+                  ),
+                ),
+
+                // Skip Button (Inside Top Half to ensure visibility)
+                if (!hasVoted && me.isAlive)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                         onPressed: () => provider.submitVote('SKIP'),
+                         style: OutlinedButton.styleFrom(
+                           side: const BorderSide(color: Colors.grey),
+                           padding: const EdgeInsets.symmetric(vertical: 12),
+                         ),
+                         child: const Text('SKIP VOTE', style: TextStyle(color: Colors.grey)),
+                      ),
                     ),
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Badge(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        label: Text('$voteCount'),
-                        isLabelVisible: voteCount > 0,
-                        backgroundColor: AppTheme.secondary,
-                        child: Text(player.avatar, style: const TextStyle(fontSize: 40)),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(player.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      // Show VOTED if this player has cast their vote
-                      if (room.votes.containsKey(player.id))
-                        Container(
-                          margin: const EdgeInsets.only(top: 4),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text('✓ VOTED', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
-                        )
-                    ],
+
+                if (!me.isAlive)
+                  Container(
+                     padding: const EdgeInsets.all(8),
+                     color: Colors.red.withValues(alpha: 0.2),
+                     width: double.infinity,
+                     child: const Text('YOU ARE ELIMINATED', textAlign: TextAlign.center, style: TextStyle(color: Colors.red, fontSize: 12)),
                   ),
-                ).animate().scale(duration: 200.ms),
-              );
-            },
+              ],
+            ),
           ),
         ),
-        if (!hasVoted && me.isAlive)
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                   onPressed: () => provider.submitVote('SKIP'),
-                   style: OutlinedButton.styleFrom(
-                     side: const BorderSide(color: Colors.grey),
-                     padding: const EdgeInsets.symmetric(vertical: 16),
-                   ),
-                   child: const Text('SKIP VOTE', style: TextStyle(color: Colors.grey)),
-                ),
-              ),
-            ),
 
-        if (!me.isAlive)
-          Container(
-             padding: const EdgeInsets.all(16),
-             color: Colors.red.withValues(alpha: 0.2),
-             width: double.infinity,
-             child: const Text('YOU ARE ELIMINATED. SPECTATING.', textAlign: TextAlign.center, style: TextStyle(color: Colors.red)),
+        const Divider(height: 1, thickness: 1, color: Colors.white24),
+
+        // BOTTOM HALF: CHAT HISTORY - 50%
+        Expanded(
+          flex: 1,
+          child: Container(
+            color: Colors.black12,
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                  color: Colors.black26,
+                  child: const Text('MISSION LOG', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white54)),
+                ),
+                Expanded(child: _buildChatHistory(provider)),
+              ],
+            ),
           ),
+        ),
       ],
     );
   }
