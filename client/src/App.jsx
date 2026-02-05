@@ -231,11 +231,14 @@ function App() {
               </div>
             )}
 
-            <img
-              src="/logo_landing.png"
-              alt="SigmaBluff Logo"
-              className="w-80 md:w-96 lg:w-[28rem] h-auto drop-shadow-2xl mb-8 hover:scale-105 transition-transform duration-300"
-            />
+            <div className="bg-background p-4 rounded-3xl">
+              <img
+                src="/logo_landing.png"
+                alt="SigmaBluff Logo"
+                className="w-64 md:w-72 h-auto drop-shadow-2xl hover:scale-105 transition-transform duration-300"
+              />
+            </div>
+            <div className="h-4"></div>
             <div className="space-y-4 bg-card p-8 rounded-2xl shadow-2xl border border-gray-700">
               <input
                 type="text"
