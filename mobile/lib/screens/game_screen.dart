@@ -42,10 +42,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
     WidgetsBinding.instance.addPostFrameCallback((_) {
        final provider = Provider.of<GameProvider>(context, listen: false);
        provider.addListener(_checkRoundChange);
-       // Trigger initial round check after a small delay to avoid double-speak
-       Future.delayed(const Duration(milliseconds: 500), () {
-         if (mounted) _checkRoundChange();
-       });
+       // Trigger initial round check immediately if data is ready
+       if (mounted) _checkRoundChange();
     });
   }
 
@@ -98,7 +96,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
   void _speakRound(int round) async {
     // Stop any existing speech first to prevent overlap
     await _flutterTts.stop();
-    await Future.delayed(const Duration(milliseconds: 100));
+    // No delay needed for instant reaction
     await _flutterTts.speak("Round $round");
   }
 
@@ -478,6 +476,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
       clipBehavior: Clip.hardEdge,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
+        const SizedBox(height: 12), // Gap for visual breathing room
         // Previous Rounds History
         ...room.previousRounds.asMap().entries.map((entry) {
           final roundIdx = entry.key;
@@ -666,6 +665,40 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
 
     return Column(
       children: [
+         // Role Card (Mini) - Reused for Voting
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              _showSecretWord = !_showSecretWord;
+            });
+          },
+          child: Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [AppTheme.surface, AppTheme.background]),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _showSecretWord ? AppTheme.primary.withValues(alpha: 0.5) : Colors.white12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('YOUR SECRET WORD', style: TextStyle(color: AppTheme.textMuted, fontSize: 10, letterSpacing: 1.5)),
+                Text(
+                  _showSecretWord ? (provider.myWord ?? '???') : 'TAP TO REVEAL',
+                  style: TextStyle(
+                    fontSize: 14, 
+                    fontWeight: FontWeight.bold, 
+                    color: _showSecretWord ? Colors.white : Colors.white24,
+                    letterSpacing: _showSecretWord ? 1.0 : 2.0
+                  )
+                ),
+              ],
+            ),
+          ),
+        ),
+
         // TOP HALF: VOTING GRID (Avatars) - 50%
         Expanded(
           flex: 1,
