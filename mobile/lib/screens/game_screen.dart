@@ -27,6 +27,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
   bool _showReactions = false;
   bool _showSecretWord = false; 
   // TTS State
+  int _lastAnnouncedRound = 0;
   bool _ttsInitialized = false;
   Future<void>? _ttsInitFuture;
 
