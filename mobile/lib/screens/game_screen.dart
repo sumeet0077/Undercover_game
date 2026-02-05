@@ -42,6 +42,10 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
     WidgetsBinding.instance.addPostFrameCallback((_) {
        final provider = Provider.of<GameProvider>(context, listen: false);
        provider.addListener(_checkRoundChange);
+       // Trigger initial round check after a small delay to avoid double-speak
+       Future.delayed(const Duration(milliseconds: 500), () {
+         if (mounted) _checkRoundChange();
+       });
     });
   }
 
@@ -92,6 +96,9 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
   }
 
   void _speakRound(int round) async {
+    // Stop any existing speech first to prevent overlap
+    await _flutterTts.stop();
+    await Future.delayed(const Duration(milliseconds: 100));
     await _flutterTts.speak("Round $round");
   }
 
@@ -198,7 +205,9 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppTheme.background,
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         elevation: 0,
         centerTitle: true,
         leading: me.isHost ? IconButton(
@@ -466,6 +475,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
   Widget _buildChatHistory(GameProvider provider) {
     final room = provider.room!;
     return ListView(
+      clipBehavior: Clip.hardEdge,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
         // Previous Rounds History
