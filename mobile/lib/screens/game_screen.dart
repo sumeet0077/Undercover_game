@@ -93,27 +93,27 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
   // ROLE NAME MAPPING HELPERS
   String _getRoleDisplayName(String role) {
     switch (role) {
-      case 'CIVILIAN': return 'THE PACK';
-      case 'UNDERCOVER': return 'THE SIGMA';
-      case 'MR_WHITE': return 'THE GLITCH';
+      case 'PACK': return 'The Pack'; // Case fix: Server sends PACK
+      case 'SIGMA': return 'The Sigma';
+      case 'GLITCH': return 'The Glitch';
       default: return role;
     }
   }
 
   String _getWinnerDisplayName(String? winners) {
     switch (winners) {
-      case 'CIVILIANS': return 'THE PACK WINS!';
-      case 'UNDERCOVERS': return 'THE SIGMA WINS!';
-      case 'MR_WHITE': return 'THE GLITCH WINS!';
+      case 'PACK': return 'THE PACK WINS!';
+      case 'SIGMA': return 'THE SIGMA WINS!';
+      case 'GLITCH': return 'THE GLITCH WINS!';
       default: return '$winners WIN!';
     }
   }
 
   String _getVictoryCaption(String? winners) {
     switch (winners) {
-      case 'CIVILIANS': return 'Collective Aura Intact. The Sigma has been neutralized.';
-      case 'UNDERCOVERS': return 'TOTAL SIGMA DOMINATION';
-      case 'MR_WHITE': return 'SYSTEM REBOOT. The Glitch just stole your aura.';
+      case 'PACK': return 'Collective Aura Intact. The Sigma has been neutralized.';
+      case 'SIGMA': return 'TOTAL SIGMA DOMINATION';
+      case 'GLITCH': return 'SYSTEM REBOOT. The Glitch just stole your aura.';
       default: return '';
     }
   }
@@ -372,7 +372,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
                             itemCount: (gameProvider.gameResult!['allRoles'] as List?)?.length ?? 0,
                             itemBuilder: (context, index) {
                               final player = (gameProvider.gameResult!['allRoles'] as List)[index];
-                              final isUndercover = player['role'] == 'UNDERCOVER';
+                              final isUndercover = player['role'] == 'SIGMA' || player['role'] == 'GLITCH';
                               return Container(
                                 margin: const EdgeInsets.symmetric(vertical: 4),
                                 padding: const EdgeInsets.all(12),

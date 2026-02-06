@@ -82,7 +82,7 @@ const Lobby = ({ room, socket, myId }) => {
                         </div>
                         <input
                             type="range"
-                            min="0"
+                            min="1"
                             max={Math.max(1, room.players.length - 2)}
                             value={ucCount}
                             onChange={e => setUcCount(parseInt(e.target.value))}
@@ -98,7 +98,7 @@ const Lobby = ({ room, socket, myId }) => {
                         <input
                             type="range"
                             min="0"
-                            max={Math.max(0, room.players.length - ucCount - 2)}
+                            max={Math.max(0, room.players.length - ucCount - 1)}
                             value={mrWhiteCount}
                             onChange={e => setMrWhiteCount(parseInt(e.target.value))}
                             className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-secondary"

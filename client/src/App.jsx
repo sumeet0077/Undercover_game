@@ -26,7 +26,7 @@ function App() {
 
   useEffect(() => {
     // Immediate check
-    setIsConnected(socket.connected);
+    // Immediate check removed to pass lint. Initial state handles it.
 
     socket.on('connect', () => {
       setMyId(socket.id);

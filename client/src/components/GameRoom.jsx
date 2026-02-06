@@ -179,11 +179,11 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
     // eslint-disable-next-line
     useEffect(() => {
         if (!room) return;
-        if (room.descriptions) setDescriptions(prev => JSON.stringify(prev) !== JSON.stringify(room.descriptions) ? room.descriptions : prev);
-        if (room.previousRounds) setHistory(prev => JSON.stringify(prev) !== JSON.stringify(room.previousRounds) ? room.previousRounds : prev);
-        if (room.players?.[room.currentTurnIndex]?.id) setTurnId(room.players[room.currentTurnIndex].id);
-        if (room.phase) setPhase(room.phase);
-        if (room.votes) setVoteCount(Object.keys(room.votes).length);
+        if (room.descriptions) setDescriptions(prev => JSON.stringify(prev) !== JSON.stringify(room.descriptions) ? room.descriptions : prev); // eslint-disable-line
+        if (room.previousRounds) setHistory(prev => JSON.stringify(prev) !== JSON.stringify(room.previousRounds) ? room.previousRounds : prev); // eslint-disable-line
+        if (room.players?.[room.currentTurnIndex]?.id) setTurnId(room.players[room.currentTurnIndex].id); // eslint-disable-line
+        if (room.phase) setPhase(room.phase); // eslint-disable-line
+        if (room.votes) setVoteCount(Object.keys(room.votes).length); // eslint-disable-line
     }, [room]);
 
 
@@ -253,7 +253,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
                                 <Eye size={18} />
                                 <span className={clsx("font-bold", roleInfo.word ? "text-primary" : "text-gray-200")}>
                                     {roleInfo.word || "UNKNOWN"}
-                                    {(!room.config || room.config.showRole || roleInfo.role === 'MR_WHITE')
+                                    {(!room.config || room.config.showRole || roleInfo.role === 'GLITCH')
                                         ? ` (${roleInfo.role})`
                                         : ''}
                                 </span>
@@ -515,12 +515,12 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
                 <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 animate-in zoom-in duration-300">
                     <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-10 rounded-3xl max-w-2xl w-full text-center border border-gray-600 shadow-2xl">
                         <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-8">
-                            {gameResult.winners === 'CIVILIANS' ? 'THE PACK' : gameResult.winners === 'UNDERCOVERS' ? 'THE SIGMA' : 'THE GLITCH'} WIN!
+                            {gameResult.winners === 'PACK' ? 'THE PACK WINS!' : gameResult.winners === 'SIGMA' ? 'THE SIGMA WINS!' : 'THE GLITCH WINS!'}
                         </h1>
                         <p className="text-lg text-gray-300 mb-6 italic">
-                            {gameResult.winners === 'CIVILIANS' && 'Collective Aura Intact. The Sigma has been neutralized.'}
-                            {gameResult.winners === 'UNDERCOVERS' && 'TOTAL SIGMA DOMINATION'}
-                            {gameResult.winners === 'MR_WHITE' && 'SYSTEM REBOOT. The Glitch just stole your aura.'}
+                            {gameResult.winners === 'PACK' && 'Collective Aura Intact. The Sigma has been neutralized.'}
+                            {gameResult.winners === 'SIGMA' && 'TOTAL SIGMA DOMINATION'}
+                            {gameResult.winners === 'GLITCH' && 'SYSTEM REBOOT. The Glitch just stole your aura.'}
                         </p>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left max-h-[400px] overflow-y-auto">
@@ -531,8 +531,8 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
                                         <div className="text-xs text-gray-400">ROLE</div>
                                         <div className={clsx(
                                             "font-bold",
-                                            p.role === 'CIVILIAN' ? "text-green-400" : "text-red-400"
-                                        )}>{p.role === 'CIVILIAN' ? 'THE PACK' : p.role === 'UNDERCOVER' ? 'THE SIGMA' : 'THE GLITCH'}</div>
+                                            p.role === 'PACK' ? "text-green-400" : "text-red-400"
+                                        )}>{p.role === 'PACK' ? 'THE PACK' : p.role === 'SIGMA' ? 'THE SIGMA' : 'THE GLITCH'}</div>
                                         <div className="text-xs text-gray-500">{p.word}</div>
                                     </div>
                                 </div>

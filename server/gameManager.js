@@ -113,28 +113,28 @@ class GameManager {
         }
 
         const roles = [];
-        for (let i = 0; i < undercoverCount; i++) roles.push('UNDERCOVER');
-        for (let i = 0; i < mrWhiteCount; i++) roles.push('MR_WHITE');
-        while (roles.length < playerCount) roles.push('CIVILIAN');
+        for (let i = 0; i < undercoverCount; i++) roles.push('SIGMA');
+        for (let i = 0; i < mrWhiteCount; i++) roles.push('GLITCH');
+        while (roles.length < playerCount) roles.push('PACK');
 
         // Shuffle roles
         roles.sort(() => Math.random() - 0.5);
 
         // Pick words
         const pair = WORD_PAIRS[Math.floor(Math.random() * WORD_PAIRS.length)];
-        // Randomize which word is Civilian vs Undercover to avoid pattern
+        // Randomize which word is Pack vs Sigma to avoid pattern
         const swap = Math.random() > 0.5;
-        const civilianWord = swap ? pair[0] : pair[1];
-        const undercoverWord = swap ? pair[1] : pair[0];
+        const packWord = swap ? pair[0] : pair[1];
+        const sigmaWord = swap ? pair[1] : pair[0];
 
         // Assign to players
         players.forEach((p, index) => {
             p.role = roles[index];
             p.isAlive = true;
             p.isEliminated = false; // RESET elimination state for new game
-            if (p.role === 'CIVILIAN') p.word = civilianWord;
-            else if (p.role === 'UNDERCOVER') p.word = undercoverWord;
-            else p.word = null; // Mr. White
+            if (p.role === 'PACK') p.word = packWord;
+            else if (p.role === 'SIGMA') p.word = sigmaWord;
+            else p.word = "You are The Glitch"; // Explicit word for Glitch
             p.inLobby = false; // Reset for everyone
         });
 
@@ -184,14 +184,14 @@ class GameManager {
         // Logic similar to startGame word picking
         const pair = WORD_PAIRS[Math.floor(Math.random() * WORD_PAIRS.length)];
         const swap = Math.random() > 0.5;
-        const civilianWord = swap ? pair[0] : pair[1];
-        const undercoverWord = swap ? pair[1] : pair[0];
+        const packWord = swap ? pair[0] : pair[1];
+        const sigmaWord = swap ? pair[1] : pair[0];
 
         // Update words for everyone based on EXISTING roles
         room.players.forEach(p => {
-            if (p.role === 'CIVILIAN') p.word = civilianWord;
-            else if (p.role === 'UNDERCOVER') p.word = undercoverWord;
-            // Mr. White stays null
+            if (p.role === 'PACK') p.word = packWord;
+            else if (p.role === 'SIGMA') p.word = sigmaWord;
+            else if (p.role === 'GLITCH') p.word = "You are The Glitch"; // Glitch explicit word
 
             // FULL RESET of life logic
             p.isAlive = true;
@@ -406,23 +406,23 @@ class GameManager {
     }
 
     checkWinCondition(room) {
-        const aliveCivilians = room.players.filter(p => p.isAlive && p.role === 'CIVILIAN').length;
-        const aliveUndercovers = room.players.filter(p => p.isAlive && (p.role === 'UNDERCOVER' || p.role === 'MR_WHITE')).length;
+        const alivePack = room.players.filter(p => p.isAlive && p.role === 'PACK').length;
+        const aliveSigmas = room.players.filter(p => p.isAlive && p.role === 'SIGMA').length;
+        const aliveGlitches = room.players.filter(p => p.isAlive && p.role === 'GLITCH').length;
+        const aliveImposters = aliveSigmas + aliveGlitches;
 
-        if (aliveUndercovers === 0) {
-            return 'CIVILIANS';
+        if (aliveImposters === 0) {
+            return 'PACK';
         }
-        // Undercovers win if they equal or outnumber civilians (standard rules often say 1:1 is win for UC)
-        if (aliveUndercovers > aliveCivilians) {
-            return 'UNDERCOVERS';
-        }
-        // Special Case: 1v1 (or 1v1v1 etc) - If it's down to 1 Civilian and 1 Undercover, Undercover wins (stalemate breaker)
-        // But if it's 2v2, we let them play (maybe they vote incorrectly)
-        if (aliveUndercovers === aliveCivilians && aliveCivilians === 1) {
-            return 'UNDERCOVERS';
+        // Imposters win if they equal or outnumber Pack
+        if (aliveImposters > alivePack || (aliveImposters === alivePack && alivePack === 1)) {
+            // Distinguish who led the win (flavor)
+            // If Sigmas are alive, it's a Sigma win. If only Glitch is left, it's a Glitch win.
+            if (aliveSigmas > 0) return 'SIGMA';
+            return 'GLITCH';
         }
 
-        // If 2v2 (U==C && C>1), we return null (Game Continues) as per user request
+        // If 2v2 (U==C && C>1), we return null (Game Continues)
         return null;
     }
 
