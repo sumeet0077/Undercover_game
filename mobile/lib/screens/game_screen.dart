@@ -317,7 +317,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
                           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red),
                         ),
                         Text(
-                          'was a ${_getRoleDisplayName(gameProvider.eliminatedInfo!['eliminated']['role'] ?? 'Unknown')}',
+                          'was ${_getRoleDisplayName(gameProvider.eliminatedInfo!['eliminated']['role'] ?? 'Unknown')}',
                           style: const TextStyle(color: Colors.white70),
                         ),
                       ],

@@ -503,7 +503,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
                             <div className="mb-6">
                                 <div className="text-6xl mb-4">💀</div>
                                 <div className="text-2xl font-bold text-red-500 mb-2">{eliminatedInfo.eliminated.name}</div>
-                                <div className="text-gray-400">was a <span className="text-white font-bold">{eliminatedInfo.eliminated.role}</span></div>
+                                <div className="text-gray-400">was <span className="text-white font-bold">{eliminatedInfo.eliminated.role}</span></div>
                             </div>
                         )}
                         <div className="text-gray-500 text-sm animate-pulse">Next round starting soon...</div>

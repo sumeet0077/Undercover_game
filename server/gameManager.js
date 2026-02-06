@@ -71,7 +71,12 @@ class GameManager {
 
         const oldId = player.id;
         player.id = newSocketId;
-        player.isAlive = true; // Mark as alive if they were marked dead by disconnect (optional choice)
+
+        // CRITICAL FIX: Only revive if NOT eliminated. 
+        // If they were eliminated, they stay dead.
+        if (!player.isEliminated) {
+            player.isAlive = true;
+        }
 
         // MIGRATE VOTES (If in Voting phase)
         // This prevents crashes where a vote targets an Old Socket ID that no longer exists in players array
@@ -126,6 +131,7 @@ class GameManager {
         players.forEach((p, index) => {
             p.role = roles[index];
             p.isAlive = true;
+            p.isEliminated = false; // RESET elimination state for new game
             if (p.role === 'CIVILIAN') p.word = civilianWord;
             else if (p.role === 'UNDERCOVER') p.word = undercoverWord;
             else p.word = null; // Mr. White
@@ -140,6 +146,11 @@ class GameManager {
         room.currentTurnIndex = startPlayerIndex;
         room.wordPair = pair;
         room.descriptions = [];
+        room.votes = {};
+        room.round = 1;
+        room.winners = null;
+        room.skippedCount = 0;
+        room.previousRounds = []; // CRITICAL FIX: Clear history for NEW game
         room.turnOrder = this.getAlivePlayersIndices(room, startPlayerIndex);
         room.config = config; // Store config for UI (role hiding)
 
@@ -181,6 +192,10 @@ class GameManager {
             if (p.role === 'CIVILIAN') p.word = civilianWord;
             else if (p.role === 'UNDERCOVER') p.word = undercoverWord;
             // Mr. White stays null
+
+            // FULL RESET of life logic
+            p.isAlive = true;
+            p.isEliminated = false;
         });
 
         // FULL RESTART LOGIC
@@ -277,7 +292,8 @@ class GameManager {
 
         // Check if voter is alive
         const voter = room.players.find(p => p.id === voterId);
-        if (!voter || !voter.isAlive) return;
+        // CRITICAL: Ensure they are allowed to vote
+        if (!voter || !voter.isAlive || voter.isEliminated) return;
 
         // Check if already voted
         if (room.votes[voterId]) return;
@@ -345,6 +361,7 @@ class GameManager {
                 this.io.to(roomId).emit('voting_result', { result: 'Skipped', eliminated: null });
             } else {
                 eliminatedPlayer.isAlive = false;
+                eliminatedPlayer.isEliminated = true; // MARK PERMANENTLY DEAD
                 this.io.to(roomId).emit('voting_result', {
                     result: 'Eliminated',
                     eliminated: { name: eliminatedPlayer.name, role: eliminatedPlayer.role }
