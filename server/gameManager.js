@@ -134,7 +134,7 @@ class GameManager {
             p.isEliminated = false; // RESET elimination state for new game
             if (p.role === 'PACK') p.word = packWord;
             else if (p.role === 'SIGMA') p.word = sigmaWord;
-            else p.word = "You are The Glitch"; // Explicit word for Glitch
+            else p.word = "You are The gLiTcH"; // Explicit word for Glitch
             p.inLobby = false; // Reset for everyone
         });
 

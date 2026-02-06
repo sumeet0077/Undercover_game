@@ -95,7 +95,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
     switch (role) {
       case 'PACK': return 'The Pack'; // Case fix: Server sends PACK
       case 'SIGMA': return 'The Sigma';
-      case 'GLITCH': return 'The Glitch';
+      case 'GLITCH': return 'The gLiTcH';
       default: return role;
     }
   }
@@ -104,7 +104,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
     switch (winners) {
       case 'PACK': return 'THE PACK WINS!';
       case 'SIGMA': return 'THE SIGMA WINS!';
-      case 'GLITCH': return 'THE GLITCH WINS!';
+      case 'GLITCH': return 'THE gLiTcH WINS!';
       default: return '$winners WIN!';
     }
   }
@@ -113,7 +113,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver, Si
     switch (winners) {
       case 'PACK': return 'Collective Aura Intact. The Sigma has been neutralized.';
       case 'SIGMA': return 'TOTAL SIGMA DOMINATION';
-      case 'GLITCH': return 'SYSTEM REBOOT. The Glitch just stole your aura.';
+      case 'GLITCH': return 'SYSTEM REBOOT. The gLiTcH just stole your aura.';
       default: return '';
     }
   }

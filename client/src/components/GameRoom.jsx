@@ -515,12 +515,12 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
                 <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 animate-in zoom-in duration-300">
                     <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-10 rounded-3xl max-w-2xl w-full text-center border border-gray-600 shadow-2xl">
                         <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-8">
-                            {gameResult.winners === 'PACK' ? 'THE PACK WINS!' : gameResult.winners === 'SIGMA' ? 'THE SIGMA WINS!' : 'THE GLITCH WINS!'}
+                            {gameResult.winners === 'PACK' ? 'THE PACK WINS!' : gameResult.winners === 'SIGMA' ? 'THE SIGMA WINS!' : 'THE gLiTcH WINS!'}
                         </h1>
                         <p className="text-lg text-gray-300 mb-6 italic">
                             {gameResult.winners === 'PACK' && 'Collective Aura Intact. The Sigma has been neutralized.'}
                             {gameResult.winners === 'SIGMA' && 'TOTAL SIGMA DOMINATION'}
-                            {gameResult.winners === 'GLITCH' && 'SYSTEM REBOOT. The Glitch just stole your aura.'}
+                            {gameResult.winners === 'GLITCH' && 'SYSTEM REBOOT. The gLiTcH just stole your aura.'}
                         </p>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left max-h-[400px] overflow-y-auto">
@@ -532,7 +532,7 @@ const GameRoom = ({ room, socket, myId, roleInfo }) => {
                                         <div className={clsx(
                                             "font-bold",
                                             p.role === 'PACK' ? "text-green-400" : "text-red-400"
-                                        )}>{p.role === 'PACK' ? 'THE PACK' : p.role === 'SIGMA' ? 'THE SIGMA' : 'THE GLITCH'}</div>
+                                        )}>{p.role === 'PACK' ? 'THE PACK' : p.role === 'SIGMA' ? 'THE SIGMA' : 'THE gLiTcH'}</div>
                                         <div className="text-xs text-gray-500">{p.word}</div>
                                     </div>
                                 </div>

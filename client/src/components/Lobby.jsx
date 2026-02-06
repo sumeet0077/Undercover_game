@@ -18,6 +18,14 @@ const Lobby = ({ room, socket, myId }) => {
         socket.emit('start_game', { roomId: room.id, config: { ucCount, mrWhiteCount, showRole } });
     };
 
+    // Auto-clamp Glitch count when player count or Sigma count changes
+    React.useEffect(() => {
+        const maxGlitches = Math.max(0, room.players.length - ucCount - 1);
+        if (mrWhiteCount > maxGlitches) {
+            setMrWhiteCount(maxGlitches);
+        }
+    }, [ucCount, room.players.length, mrWhiteCount]);
+
     return (
         <div className="max-w-4xl w-full">
             <div className="flex justify-between items-center mb-12">
@@ -92,7 +100,7 @@ const Lobby = ({ room, socket, myId }) => {
 
                     <div className="mb-4">
                         <div className="flex justify-between mb-2">
-                            <span className="text-gray-300">Glitches</span>
+                            <span className="text-gray-300">gLiTcHes</span>
                             <span className="font-bold text-secondary">{mrWhiteCount}</span>
                         </div>
                         <input
